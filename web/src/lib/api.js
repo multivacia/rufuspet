@@ -24,6 +24,34 @@ export function criarPedido(payload) {
   return requisitar('/pedidos', { method: 'POST', body: JSON.stringify(payload) });
 }
 
+export function adminMe() {
+  return requisitar('/admin/me');
+}
+
+export function adminLogin(email, senha) {
+  return requisitar('/admin/login', { method: 'POST', body: JSON.stringify({ email, senha }) });
+}
+
+export function adminLogout() {
+  return requisitar('/admin/logout', { method: 'POST' });
+}
+
+export function adminListarProdutos() {
+  return requisitar('/admin/produtos');
+}
+
+export function adminAtualizarProduto(sku, campos) {
+  return requisitar(`/admin/produtos/${encodeURIComponent(sku)}`, { method: 'PATCH', body: JSON.stringify(campos) });
+}
+
+export function adminListarPedidos({ pagina = 1, porPagina = 20 } = {}) {
+  return requisitar(`/admin/pedidos?pagina=${pagina}&porPagina=${porPagina}`);
+}
+
+export function adminAtualizarPedido(id, campos) {
+  return requisitar(`/admin/pedidos/${id}`, { method: 'PATCH', body: JSON.stringify(campos) });
+}
+
 // Achata a resposta agrupada de GET /api/produtos numa lista de SKUs
 // comprariveis (uma linha por variante), pra facilitar consulta por sku
 // no carrinho e no checkout.

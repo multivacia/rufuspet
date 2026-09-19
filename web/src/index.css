@@ -122,3 +122,29 @@ footer{background:var(--navy-deep);color:rgba(255,255,255,.55);padding:26px 0;fo
 .confirmacao h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.03em;font-variation-settings:'wdth' 90}
 .confirmacao .numero{font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink-soft);margin-top:10px}
 .confirmacao .valor{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;margin-top:18px}
+
+/* Admin */
+.admin-shell{min-height:100vh}
+.admin-topbar{background:var(--navy-deep);box-shadow:0 1px 0 rgba(140,198,63,.35)}
+.admin-topbar-in{display:flex;align-items:center;gap:24px;padding:14px 20px}
+.admin-tag{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--lime)}
+.admin-nav{display:flex;gap:18px;flex:1}
+.admin-nav a{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.admin-nav a.on,.admin-nav a:hover{color:#fff;border-color:var(--lime)}
+.admin-topbar-user{color:rgba(255,255,255,.7);font-size:11px;display:flex;align-items:center;gap:10px}
+.admin-topbar-user button{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:3px;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.admin-topbar-user button:hover{background:rgba(255,255,255,.1)}
+
+.tabela-admin{width:100%;border-collapse:collapse;background:var(--card);font-size:13px}
+.tabela-admin th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);padding:10px 8px;border-bottom:2px solid var(--line)}
+.tabela-admin td{padding:8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+.tabela-admin tr.salvando{opacity:.6}
+.tabela-admin input[type="number"],.tabela-admin input[type="text"]{width:88px;height:32px;padding:0 8px;border:1px solid var(--line);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+.tabela-admin input[type="checkbox"]{width:18px;height:18px}
+
+.expandir{width:26px;height:26px;border:1px solid var(--line);border-radius:3px;background:#fff;cursor:pointer;font-size:14px;line-height:1}
+.expandir:hover{background:var(--line-soft)}
+
+.tabela-itens{width:100%;border-collapse:collapse;margin:8px 0;background:var(--paper)}
+.tabela-itens th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:6px 8px}
+.tabela-itens td{padding:6px 8px;font-size:12.5px;border-top:1px solid var(--line-soft)}

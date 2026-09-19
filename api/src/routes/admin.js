@@ -50,6 +50,10 @@ adminRouter.post('/admin/login', adminLoginRateLimit, async (req, res, next) => 
   }
 });
 
+adminRouter.get('/admin/me', autenticarAdmin, (req, res) => {
+  res.json({ email: req.admin.email });
+});
+
 adminRouter.post('/admin/logout', autenticarAdmin, (req, res) => {
   res.clearCookie(COOKIE_ADMIN);
   res.json({ ok: true });
