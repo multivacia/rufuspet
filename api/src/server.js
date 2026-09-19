@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
+import { catalogoRouter } from './routes/catalogo.js';
+import { notFoundHandler, errorHandler } from './middleware/errors.js';
 
 const app = express();
 
@@ -17,14 +19,10 @@ app.get('/health', async (req, res) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Rota não encontrada' } });
-});
+app.use('/api', catalogoRouter);
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ erro: { codigo: 'ERRO_INTERNO', mensagem: 'Erro interno' } });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
