@@ -92,7 +92,7 @@ DECLARE
   v_val BIGINT;
 BEGIN
   EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I', v_seq);
-  EXECUTE format('SELECT nextval(%I)', v_seq) INTO v_val;
+  EXECUTE format('SELECT nextval(%L)', v_seq) INTO v_val;
   RETURN format('RFS-%s-%s', p_ano, lpad(v_val::text, 4, '0'));
 END;
 $$ LANGUAGE plpgsql;

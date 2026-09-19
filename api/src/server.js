@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
 import { catalogoRouter } from './routes/catalogo.js';
+import { pedidosRouter } from './routes/pedidos.js';
 import { notFoundHandler, errorHandler } from './middleware/errors.js';
 
 const app = express();
@@ -20,6 +21,7 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api', catalogoRouter);
+app.use('/api', pedidosRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
