@@ -1,20 +1,28 @@
-import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ProdutosProvider } from './lib/produtos.jsx';
+import { CarrinhoProvider } from './lib/carrinho.jsx';
+import Topbar from './components/Topbar.jsx';
+import Rodape from './components/Rodape.jsx';
+import Catalogo from './views/Catalogo.jsx';
+import Carrinho from './views/Carrinho.jsx';
+import Checkout from './views/Checkout.jsx';
+import Confirmacao from './views/Confirmacao.jsx';
 
 export default function App() {
-  const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then(setStatus)
-      .catch(() => setStatus({ ok: false }));
-  }, []);
-
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <p>
-        rufus-web scaffold — API: {status ? JSON.stringify(status) : 'verificando...'}
-      </p>
-    </main>
+    <ProdutosProvider>
+      <CarrinhoProvider>
+        <BrowserRouter>
+          <Topbar />
+          <Routes>
+            <Route path="/" element={<Catalogo />} />
+            <Route path="/carrinho" element={<Carrinho />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/confirmacao" element={<Confirmacao />} />
+          </Routes>
+          <Rodape />
+        </BrowserRouter>
+      </CarrinhoProvider>
+    </ProdutosProvider>
   );
 }
