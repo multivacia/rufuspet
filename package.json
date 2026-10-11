@@ -2,31 +2,28 @@
   "name": "rufus-loja",
   "version": "0.1.0",
   "private": true,
-  "description": "Rufus — catálogo B2B com pedido por e-mail",
+  "description": "Rufus — catálogo B2B (site estático + pedido.php para HostGator)",
   "scripts": {
     "dev": "next dev",
+    "dev:api": "php -S localhost:8000 -t public",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint --dir src --dir tests",
+    "preview": "php -S localhost:8080 -t out",
+    "lint": "next lint --dir src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "php tests/pedido_test.php"
   },
   "dependencies": {
     "next": "15.5.27",
-    "nodemailer": "6.10.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "zod": "3.25.76"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^22",
-    "@types/nodemailer": "^6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^15",
-    "typescript": "^5",
-    "vitest": "^3.2.7"
+    "typescript": "^5"
   }
 }

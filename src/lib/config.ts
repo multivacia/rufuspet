@@ -1,5 +1,5 @@
-// Dados da loja e do envio de pedidos, lidos das variáveis de ambiente (.env.local / painel da hospedagem).
-// Veja .env.example para a lista completa.
+// Dados da loja exibidos no site, lidos das variáveis de ambiente no momento do build
+// (.env.local / .env.production). Alterou? Rode "npm run build" e reenvie a pasta out/.
 
 function env(nome: string, padrao = ""): string {
   return process.env[nome]?.trim() || padrao;
@@ -16,19 +16,5 @@ export function dadosLoja() {
     endereco: env("LOJA_ENDERECO"),
     horario: env("LOJA_HORARIO_ATENDIMENTO"),
     instagram: env("LOJA_INSTAGRAM"),
-  };
-}
-
-export function configEmail() {
-  return {
-    destino: env("PEDIDOS_EMAIL_DESTINO"),
-    copiaCliente: env("PEDIDOS_COPIA_CLIENTE", "true") === "true",
-    smtp: {
-      host: env("SMTP_HOST"),
-      port: Number(env("SMTP_PORT", "465")),
-      user: env("SMTP_USER"),
-      pass: env("SMTP_PASS"),
-      from: env("SMTP_FROM"),
-    },
   };
 }

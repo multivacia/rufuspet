@@ -67,7 +67,7 @@ export function CheckoutForm() {
     setErro("");
     setErrosCampo({});
     try {
-      const resp = await fetch("/api/pedido", {
+      const resp = await fetch("/api/pedido.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itens, cliente, aceite, website }),

@@ -7,3 +7,5 @@ next-env.d.ts
 .env.local
 .env.*.local
 .vercel
+rufus.env
+rufus-pedidos/

@@ -1,0 +1,48 @@
+{
+  "_leia": "Catálogo usado pelo site e pelo pedido.php. Preços em centavos. Após editar: npm run build e reenviar a pasta out/.",
+  "produtos": [
+    {
+      "id": "saquinhos-3-rolos",
+      "nome": "Saquinhos higiênicos — kit com 3 rolos",
+      "linha": "Saquinhos higiênicos",
+      "destaques": ["3 rolos", "Práticos para passeios"],
+      "precoCentavos": 1190,
+      "imagem": "/produtos/saquinhos-3-rolos.webp"
+    },
+    {
+      "id": "saquinhos-6-rolos",
+      "nome": "Saquinhos higiênicos — kit com 6 rolos",
+      "linha": "Saquinhos higiênicos",
+      "destaques": ["6 rolos", "Melhor custo por rolo"],
+      "precoCentavos": 1890,
+      "imagem": "/produtos/saquinhos-6-rolos.webp"
+    },
+    {
+      "id": "kit-suporte-2-rolos",
+      "nome": "Kit porta-saquinhos + 2 rolos",
+      "linha": "Saquinhos higiênicos",
+      "destaques": ["Suporte com mosquetão", "2 rolos inclusos"],
+      "precoCentavos": 1290,
+      "imagem": "/produtos/kit-suporte-azul.webp",
+      "variacoes": [
+        { "id": "verde", "nome": "Verde", "cor": "#2e9e3a", "imagem": "/produtos/kit-suporte-verde.webp" },
+        { "id": "azul", "nome": "Azul", "cor": "#1f3fa8", "imagem": "/produtos/kit-suporte-azul.webp" },
+        { "id": "rosa", "nome": "Rosa", "cor": "#ec2f8c", "imagem": "/produtos/kit-suporte-rosa.webp" }
+      ]
+    },
+    {
+      "id": "pote-dobravel",
+      "nome": "Pote dobrável com mosquetão",
+      "linha": "Potes dobráveis",
+      "destaques": ["Dobrável e compacto", "Leve e portátil", "Com mosquetão"],
+      "precoCentavos": 1690,
+      "imagem": "/produtos/pote-preto.webp",
+      "variacoes": [
+        { "id": "preto", "nome": "Preto", "cor": "#1d1d1f", "imagem": "/produtos/pote-preto.webp" },
+        { "id": "azul", "nome": "Azul", "cor": "#1f5fe0", "imagem": "/produtos/pote-azul.webp" },
+        { "id": "vermelho", "nome": "Vermelho", "cor": "#e3262b", "imagem": "/produtos/pote-vermelho.webp" },
+        { "id": "rosa", "nome": "Rosa", "cor": "#ec2f8c", "imagem": "/produtos/pote-rosa.webp" }
+      ]
+    }
+  ]
+}

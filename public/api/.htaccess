@@ -1,0 +1,4 @@
+# Bloqueia acesso direto às bibliotecas PHP (arquivos que começam com "_") e a arquivos ocultos.
+<FilesMatch "^(_|\.)">
+  Require all denied
+</FilesMatch>
