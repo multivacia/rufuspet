@@ -2,50 +2,63 @@
 
 - **TASK_ID:** site-rufus-catalogo-b2b
 - **Data/hora:** 2026-10-11
-- **Objetivo:** criar do zero o site B2B da Rufus: catálogo com fotos e preços, montagem de pedido e envio por e-mail para a loja; o vendedor fecha a venda por telefone.
-- **Status final:** MVP concluído e validado localmente; aguardando criação do repositório remoto e configuração de SMTP/hospedagem.
+- **Objetivo:** criar do zero o site B2B da Rufus: catálogo com fotos e preços, montagem de pedido e registro do pedido para a loja; o vendedor fecha a venda por telefone.
+- **Status final:** MVP concluído e validado localmente, adaptado para HostGator. Repositório remoto ainda não criado (GitHub negou a criação em `multivacia`).
 - **Branch:** main (repositório local novo, sem remoto)
-- **SHA inicial:** — (repositório criado nesta atividade)
-- **SHA final:** ver `git log -1` (commit inicial)
+- **SHA inicial:** — (repositório criado nesta atividade; 1º commit 01078db)
+- **SHA final:** ver `git log -1`
 
 ## O que foi feito
-- Next.js 15 (App Router) + TypeScript; sem banco de dados, sem login, sem pagamento, sem estoque.
-- Catálogo em `src/lib/catalogo.ts`: kit 3 rolos (R$ 11,90), kit 6 rolos (R$ 18,90), kit porta-saquinhos + 2 rolos (R$ 12,90; verde/azul/rosa), pote dobrável (R$ 16,90; preto/azul/vermelho/rosa). Foto troca conforme a cor.
-- Pedido no navegador (persistido em localStorage), página de revisão com ajuste de quantidades e formulário: razão social, nome fantasia, CNPJ (validação de dígitos), responsável, telefone, e-mail, cidade/UF, observações, aceite LGPD.
-- `POST /api/pedido`: validação com zod, preços recalculados no servidor, número `RF-AAAAMMDD-XXXX`, e-mail à loja (reply-to = cliente) e cópia opcional ao cliente; honeypot anti-robô e limite de 5 pedidos/10 min por IP (melhor esforço).
-- Envio por SMTP (nodemailer). Sem SMTP em dev: e-mail impresso no terminal; em produção: erro 502 ao cliente.
-- Rodapé e nome da loja lidos de variáveis de ambiente (`LOJA_*`), com dados fictícios em `.env.example`.
-- PWA: manifest + ícones, instalável na tela inicial.
+### Etapa 1
+- Next.js 15 + TypeScript; catálogo com 4 produtos (kit 3 rolos R$ 11,90; kit 6 rolos R$ 18,90; kit porta-saquinhos + 2 rolos R$ 12,90 em verde/azul/rosa; pote dobrável R$ 16,90 em preto/azul/vermelho/rosa). Foto troca com a cor.
+- Pedido no navegador (localStorage), revisão, formulário do lojista (razão social, fantasia, CNPJ com validação, responsável, telefone, e-mail, cidade/UF, observações, aceite LGPD), página de sucesso, PWA.
+- Rodapé lido de variáveis de ambiente (`LOJA_*`).
 
-## Arquivos
-Criados: estrutura completa do projeto (`src/`, `public/produtos/*.webp`, `public/icones/*`, `tests/pedido.test.ts`, `.env.example`, `README.md`, configs). `.env.local` criado localmente com `PEDIDOS_EMAIL_DESTINO=gustavoramosalmeida@gmail.com` (não versionado).
+### Etapa 2 — HostGator + TXT (commit 9585b9c)
+- Decisão do usuário: hospedagem HostGator com domínio .com.br próprio; por enquanto pedido em TXT, e-mail depois.
+- Site exportado como estático (`output: "export"`, pasta `out/`).
+- Rota Node (`/api/pedido`, nodemailer, zod) substituída por `public/api/pedido.php` + `_pedido.php`:
+  validação, total recalculado com `catalogo.json`, número `RF-AAAAMMDD-XXXX`, TXT gravado fora do `public_html`,
+  e-mail opcional via `mail()` (desligado), honeypot, limite 5 pedidos/10 min por IP.
+- Catálogo único em `public/api/catalogo.json`, usado pelo site e pelo PHP.
+- Configuração do servidor em `rufus.env` (fora do `public_html`); `.htaccess` bloqueia `_*.php` e ocultos, força HTTPS.
+- Testes migrados para PHP (`tests/pedido_test.php`).
+
+## Arquivos (estado final)
+`src/` (app, componentes, lib), `public/api/{pedido.php,_pedido.php,catalogo.json,.htaccess}`, `public/.htaccess`,
+`public/produtos/*.webp`, `public/icones/*`, `tests/pedido_test.php`, `.env.example`, `rufus.env.example`, `README.md`, configs.
+Removidos na etapa 2: `src/app/api/pedido/route.ts`, `src/lib/email.ts`, `tests/pedido.test.ts`, `vitest.config.mts`.
+Locais, não versionados: `.env.local`, `rufus.env` (destino `gustavoramosalmeida@gmail.com`), `rufus-pedidos/`.
 
 ## Migrations
 Nenhuma (não há banco).
 
 ## Decisões
-- Preços tratados como preço por unidade para o lojista, sem pedido mínimo (não informado).
-- E-mail de destino fica só no `.env.local`/painel da hospedagem, para não expor no repositório.
-- Fotos convertidas de PNG (~1,5 MB cada) para WebP 900px (~50 KB cada).
+- Preço por unidade para o lojista, sem pedido mínimo (não informado pelo usuário).
+- HostGator compartilhada não roda Node: site estático + PHP. Requer PHP ≥ 8.1.
+- TXT sempre é gravado (serve de backup quando o e-mail for ligado).
+- E-mail de destino fica só em `rufus.env`, fora do repositório.
 
 ## Validação executada
-- `npx tsc --noEmit` → OK
-- `npx vitest run` → 7/7 testes passaram (1 falha inicial no próprio teste por espaço não separável em "R$", corrigida)
+- `npm test` (PHP) → 10/10 ok
+- `npx tsc --noEmit` → OK (antes do build acusou tipos antigos em `.next/` da rota removida; resolvido após build)
 - `npm run lint` → sem avisos ou erros
-- `npm run build` → OK
-- E2E com Playwright/Chromium em `next dev`: adicionar 3 itens com cores → CNPJ inválido recusado → envio com CNPJ válido → página de sucesso → carrinho limpo; e-mail simulado com total R$ 239,50 conferido; sem erros JS em desktop e mobile.
+- `npm run build` → OK, exporta `out/` com `api/*.php` e `.htaccess`
+- E2E Playwright/Chromium contra `php -S -t out` (igual à hospedagem): 3 itens com cores → CNPJ inválido recusado → envio ok → sucesso → carrinho limpo → TXT gravado com total R$ 239,50; sem erros JS em desktop e mobile.
+- `GET /api/pedido.php` → 405; POST com cliente vazio → 400 indicando o campo.
+- Corrigido durante a validação: alinhamento do TXT com rótulos acentuados (padding multibyte compatível com PHP 8.1).
 
 ## Pendências e riscos
-- Repositório GitHub ainda não criado (aguarda autorização).
-- Configurar SMTP real (ex.: Gmail com senha de app) e testar envio de verdade.
-- Substituir dados fictícios do rodapé; definir domínio e hospedagem (sugestão: Vercel).
-- Logo recriado em CSS/SVG; trocar pelo arquivo original quando disponível.
-- Limite por IP é em memória (por instância); suficiente para o volume esperado.
+- Criar o repositório `multivacia/rufus-loja` (o app do Claude não tem permissão de criação na organização) e fazer push.
+- Publicar na HostGator conforme README; conferir versão do PHP e se o `.htaccess` com `Require all denied` é aceito.
+- Ligar e-mail depois (conta do domínio como remetente).
+- Substituir dados fictícios do rodapé; logo recriado em CSS/SVG.
+- Ambiente da sessão é temporário: sem push, o trabalho se perde se a sessão expirar.
 
 ## Próximo passo recomendado
-Criar o repositório, publicar na Vercel com as variáveis configuradas e fazer um pedido de teste real.
+Usuário cria o repositório vazio no GitHub → push → publicar na HostGator.
 
 ## Git
-Working tree limpo após commit inicial local; sem push (sem remoto).
+Commits locais 01078db e 9585b9c + commit deste retorno; sem push (sem remoto).
 
 Uso/tokens disponíveis: INDISPONÍVEL — a sessão não fornece métrica confiável.
