@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom';
 import { useCarrinho } from '../lib/carrinho.jsx';
+import { loja } from '../lib/loja.js';
+import { Logo } from './Logo.jsx';
 
 export default function Topbar() {
   const { totalItens } = useCarrinho();
 
   return (
-    <header className="topbar">
-      <div className="topbar-in">
-        <Link to="/" className="topbar-brand">
-          <span className="brand-name">Ruf<i>u</i>s</span>
-          <span className="brand-sub">Distribuidora</span>
+    <header className="cabecalho">
+      <div className="conteudo cabecalho-in">
+        <Link to="/" aria-label={`${loja.nome} — início`}>
+          <Logo nome={loja.nome} />
         </Link>
-        <Link to="/carrinho" className="carrinho-link">
-          Carrinho
-          {totalItens > 0 && <span className="carrinho-badge">{totalItens}</span>}
+        <Link to="/pedido" className="cabecalho-pedido">
+          Meu pedido
+          {totalItens > 0 && <span className="contador">{totalItens}</span>}
         </Link>
       </div>
     </header>

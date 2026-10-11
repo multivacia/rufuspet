@@ -6,13 +6,7 @@ import { adminLoginRateLimit } from '../middleware/ratelimit.js';
 
 export const adminRouter = Router();
 
-const CAMPOS_PRODUTO_EDITAVEIS = [
-  'preco_atacado',
-  'preco_revenda_sugerido',
-  'estoque_caixas',
-  'limite_caixas',
-  'ativo',
-];
+const CAMPOS_PRODUTO_EDITAVEIS = ['preco_unitario', 'ativo'];
 
 const STATUS_PEDIDO_VALIDOS = ['novo', 'confirmado', 'faturado', 'cancelado'];
 
@@ -74,6 +68,12 @@ adminRouter.patch('/admin/produtos/:sku', autenticarAdmin, async (req, res, next
     const campos = Object.keys(updates);
     if (campos.length === 0) {
       return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Nenhum campo editável informado' } });
+    }
+    if ('preco_unitario' in updates && !(Number(updates.preco_unitario) > 0 && Number(updates.preco_unitario) < 100000)) {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Preço unitário inválido' } });
+    }
+    if ('ativo' in updates && typeof updates.ativo !== 'boolean') {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'ativo deve ser verdadeiro ou falso' } });
     }
 
     const sets = campos.map((campo, i) => `${campo} = $${i + 2}`).join(', ');

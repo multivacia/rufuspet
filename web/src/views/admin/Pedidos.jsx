@@ -4,6 +4,10 @@ import { brl } from '../../lib/formato.js';
 
 const STATUS_OPCOES = ['novo', 'confirmado', 'faturado', 'cancelado'];
 
+function formatarCnpj(cnpj) {
+  return String(cnpj ?? '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
 function formatarData(iso) {
   return new Date(iso).toLocaleString('pt-BR');
 }
@@ -57,6 +61,7 @@ export default function Pedidos() {
               <tr>
                 <th />
                 <th>Número</th>
+                <th>Empresa</th>
                 <th>Contato</th>
                 <th>Total</th>
                 <th>Status</th>
@@ -78,10 +83,18 @@ export default function Pedidos() {
                     </td>
                     <td className="mono">{pedido.numero}</td>
                     <td>
+                      {pedido.nome_fantasia || pedido.razao_social}
+                      <br />
+                      <span className="pdesc">
+                        {formatarCnpj(pedido.cnpj)} · {pedido.cidade}/{pedido.uf}
+                      </span>
+                    </td>
+                    <td>
                       {pedido.contato_nome}
                       <br />
                       <span className="pdesc">
-                        {pedido.contato_email} · {pedido.contato_whatsapp}
+                        {pedido.contato_email} · {pedido.contato_whatsapp} · prefere{' '}
+                        {pedido.canal_preferido === 'email' ? 'e-mail' : 'WhatsApp'}
                       </span>
                     </td>
                     <td className="mono">{brl(pedido.valor_total)}</td>
@@ -99,14 +112,14 @@ export default function Pedidos() {
 
                   {expandido === pedido.id && (
                     <tr>
-                      <td colSpan={6}>
+                      <td colSpan={7}>
                         <table className="tabela-itens">
                           <thead>
                             <tr>
                               <th>SKU</th>
                               <th>Item</th>
-                              <th>Qtd caixas</th>
-                              <th>Preço/caixa</th>
+                              <th>Qtd</th>
+                              <th>Preço un.</th>
                               <th>Subtotal</th>
                             </tr>
                           </thead>
@@ -118,8 +131,8 @@ export default function Pedidos() {
                                   {item.nome_snapshot}
                                   {item.cor_snapshot ? ` (${item.cor_snapshot})` : ''}
                                 </td>
-                                <td className="mono">{item.quantidade_caixas}</td>
-                                <td className="mono">{brl(item.preco_caixa_snapshot)}</td>
+                                <td className="mono">{item.quantidade}</td>
+                                <td className="mono">{brl(item.preco_unitario_snapshot)}</td>
                                 <td className="mono">{brl(item.valor_item)}</td>
                               </tr>
                             ))}

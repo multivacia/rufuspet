@@ -205,3 +205,23 @@ similar (~30%) para o SUP, com `qtd_por_caixa`/`limite_caixas`
 plausíveis para o tipo de produto. **Esses dois merecem confirmação do
 cliente antes de virar preço real em produção** — sinalizado também no
 seed com um comentário SQL.
+
+## Migration 003 — venda por unidade, sem estoque (2026-10-11)
+
+Decisão do cliente que **substitui** partes das seções acima (o schema de `001` fica como histórico;
+o estado vigente é `001` + `002` + `003`):
+
+- **Preço por unidade.** O pet shop compra por unidade, pelo preço do catálogo
+  (Kit 3 rolos R$ 11,90; Kit 6 rolos R$ 18,90; Suporte + 2 rolos R$ 12,90; Pote dobrável R$ 16,90).
+  `produtos` ganha `preco_unitario` (preenchido com o antigo `preco_revenda_sugerido`) e perde
+  `preco_atacado`, `preco_revenda_sugerido`, `qtd_por_caixa`, `preco_caixa`, `margem_pct`.
+- **Sem controle de estoque.** Saem `estoque_caixas` e `limite_caixas`. Disponibilidade é só `ativo`.
+  Quantidade por item: inteiro de 1 a 9999.
+- **`pedido_itens`:** `quantidade_caixas` → `quantidade`; `preco_caixa_snapshot` → `preco_unitario_snapshot`;
+  sai `preco_atacado_snapshot`. `valor_item` continua gerado (preço × quantidade).
+- **`pedidos`:** novos `razao_social`, `nome_fantasia`, `cnpj` (só dígitos, validado), `cidade`, `uf`.
+- **Admin** edita apenas `preco_unitario` e `ativo` em produtos.
+- **Imagens** passam a `/produtos/<sku em minúsculas>.webp` (fotos enviadas pelo cliente).
+- **Notificações:** após o commit, cada pedido é gravado como TXT em `PEDIDOS_PASTA`; e-mails
+  (`canal = 'email'`) são enviados se `SMTP_HOST` estiver configurado; WhatsApp ainda não tem envio
+  (fica `pendente`). Retry agendado/contingência ainda não implementados.

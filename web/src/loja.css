@@ -1,0 +1,144 @@
+/* Vitrine e pedido (área pública). Tudo sob .loja para não afetar o admin. */
+.loja { --raio: 14px; --verde-btn: var(--lime-deep); font-family: 'Inter Tight', system-ui, sans-serif; }
+.loja h1, .loja h2, .loja h3 { font-family: 'Bricolage Grotesque', sans-serif; color: var(--navy-deep); letter-spacing: -.03em; line-height: 1.15; font-variation-settings: 'wdth' 90; }
+.loja p { margin: 0; }
+.loja a { color: var(--navy); }
+.loja .conteudo { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+.loja .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.loja :focus-visible { outline: 3px solid var(--lime); outline-offset: 2px; }
+
+/* Botões */
+.loja .botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--verde-btn); color: #fff; border: 0; border-radius: 999px;
+  padding: 10px 18px; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; transition: background .15s;
+}
+.loja .botao:hover { background: #4e7c1d; }
+.loja .botao:disabled { opacity: .6; cursor: wait; }
+.loja .botao-grande { padding: 14px 28px; font-size: 1.05rem; }
+.loja .botao-claro { background: #fff; color: var(--navy-deep); }
+.loja .botao-claro:hover { background: #e8eefb; }
+
+/* Cabeçalho */
+.loja .cabecalho { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.loja .cabecalho-in { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.loja .cabecalho a { text-decoration: none; }
+.loja .logo { display: inline-flex; align-items: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2rem; color: var(--navy-deep); letter-spacing: -1px; }
+.loja .logo-pata { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; margin: 0 1px; border-radius: 0 0 .5em .5em; background: var(--navy-deep); transform: translateY(.08em); }
+.loja .logo-pata svg { width: 70%; fill: var(--lime); }
+.loja .cabecalho-pedido { font-weight: 700; color: var(--navy-deep); display: inline-flex; align-items: center; gap: 8px; }
+.loja .contador { background: var(--verde-btn); color: #fff; border-radius: 999px; padding: 0 9px; font-size: .85rem; }
+
+/* Hero */
+.loja .hero { background: linear-gradient(180deg, #cfe2ff 0%, #ebf5e0 100%); }
+.loja .hero-in { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 24px; padding-top: 40px; padding-bottom: 40px; }
+.loja .hero h1 { font-size: clamp(1.7rem, 4vw, 2.6rem); margin: 10px 0 12px; }
+.loja .hero p { color: var(--ink-soft); font-size: 1.05rem; max-width: 52ch; margin-bottom: 20px; }
+.loja .hero .selo { display: inline-block; background: var(--navy-deep); color: #fff; border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: .85rem; margin: 0; }
+.loja .hero-foto { display: flex; justify-content: center; }
+.loja .hero-foto img { width: min(100%, 380px); height: auto; border-radius: 24px; background: #fff; box-shadow: 0 12px 40px rgba(12,31,82,.15); }
+
+/* Vantagens */
+.loja .vantagens { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding-top: 24px; padding-bottom: 8px; }
+.loja .vantagens li { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-weight: 700; color: var(--navy-deep); }
+.loja .icone-pata { width: 22px; height: 22px; fill: var(--lime-deep); flex: none; }
+
+/* Produtos */
+.loja .produtos { padding-top: 28px; }
+.loja .produtos h2 { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; margin-bottom: 16px; }
+.loja .grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.loja .card-produto { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); overflow: hidden; display: flex; flex-direction: column; }
+.loja .card-foto { aspect-ratio: 1; background: #fff; }
+.loja .card-foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.loja .card-corpo { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.loja .card-produto h3 { font-size: 1.15rem; }
+.loja .card-descricao { color: var(--ink-soft); font-size: .88rem; line-height: 1.4; }
+.loja .card-preco { margin-top: 4px; font-size: 1.6rem; font-weight: 800; color: var(--navy-deep); font-family: 'Bricolage Grotesque', sans-serif; }
+.loja .card-preco span { font-family: 'Inter Tight', sans-serif; font-size: .85rem; font-weight: 500; color: var(--ink-soft); }
+.loja .cores { border: 0; padding: 0; margin: 0; }
+.loja .cores legend { padding: 0; font-size: .9rem; color: var(--ink-soft); }
+.loja .cores div { display: flex; gap: 8px; margin-top: 6px; }
+.loja .cor { position: relative; }
+.loja .cor input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.loja .cor > span:first-of-type { display: block; width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line); cursor: pointer; }
+.loja .cor input:checked + span { box-shadow: 0 0 0 3px var(--navy-deep); }
+.loja .cor input:focus-visible + span { outline: 3px solid var(--lime); outline-offset: 2px; }
+.loja .card-acoes { margin-top: auto; padding-top: 6px; display: flex; gap: 10px; align-items: center; }
+.loja .card-acoes .botao { flex: 1; }
+.loja .qtd { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; flex: none; }
+.loja .qtd button { border: 0; background: #eef3fb; width: 36px; font-size: 1.2rem; color: var(--navy-deep); cursor: pointer; }
+.loja .qtd input { width: 52px; border: 0; text-align: center; font: inherit; font-weight: 700; -moz-appearance: textfield; }
+.loja .qtd input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.loja .nota { color: var(--ink-soft); font-size: .9rem; margin: 24px 0 40px; }
+.loja .aviso { text-align: center; padding: 40px 0; display: grid; gap: 14px; justify-items: center; color: var(--ink-soft); }
+
+/* Barra fixa do pedido */
+.loja .barra-pedido {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30;
+  width: min(640px, calc(100% - 32px)); background: var(--navy-deep); color: #fff; border-radius: 999px;
+  padding: 10px 10px 10px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  box-shadow: 0 10px 30px rgba(12,31,82,.35);
+}
+
+/* Página do pedido */
+.loja .pagina { padding-top: 24px; padding-bottom: 48px; }
+.loja .pagina > h1 { font-size: 1.9rem; margin-bottom: 18px; }
+.loja .checkout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.loja .painel { background: #fff; border: 1px solid var(--line); border-radius: var(--raio); padding: 20px; }
+.loja .painel h2 { font-size: 1.25rem; margin-bottom: 10px; }
+.loja .itens { list-style: none; }
+.loja .item { display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.loja .item img { width: 72px; height: 72px; border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid var(--line); }
+.loja .item-nome { font-weight: 700; }
+.loja .item-sub { color: var(--ink-soft); font-size: .9rem; }
+.loja .item-acoes { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.loja .item-subtotal { font-weight: 700; }
+.loja .link-remover { background: none; border: 0; color: var(--erro); cursor: pointer; font: inherit; font-size: .85rem; }
+.loja .total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; font-size: 1.05rem; }
+.loja .total b { font-size: 1.5rem; color: var(--navy-deep); }
+.loja .link-continuar { font-weight: 700; }
+.loja .ajuda { color: var(--ink-soft); margin-bottom: 14px; }
+.loja .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.loja .campo { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
+.loja .campo.largo { grid-column: 1 / -1; }
+.loja .campo input, .loja .campo select, .loja .campo textarea { font: inherit; font-weight: 400; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+.loja .campo [aria-invalid="true"] { border-color: var(--erro); }
+.loja .canal { border: 0; display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; }
+.loja .canal legend { width: 100%; margin-bottom: 4px; }
+.loja .canal label { flex: 1; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-weight: 500; }
+.loja .canal label.on { border-color: var(--navy); background: var(--line-soft); }
+.loja .erro-campo { color: var(--erro); font-weight: 600; font-size: .85rem; }
+.loja .erro { background: var(--erro-bg); color: var(--erro); border-radius: 10px; padding: 10px 14px; font-weight: 700; margin-top: 12px; }
+.loja .aceite { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0 4px; font-size: .9rem; }
+.loja .aceite input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
+.loja .formulario .botao-grande { width: 100%; margin-top: 12px; }
+.loja .armadilha { position: absolute; left: -9999px; }
+.loja .sucesso { text-align: center; max-width: 560px; display: grid; gap: 12px; justify-items: center; }
+.loja .sucesso-icone { width: 72px; height: 72px; margin-top: 24px; border-radius: 50%; background: var(--lime); color: var(--navy-deep); font-size: 2.4rem; display: grid; place-items: center; }
+.loja .sucesso-valor { font-size: 1.6rem; font-weight: 800; color: var(--navy-deep); }
+
+/* Rodapé */
+.loja .rodape { background: var(--navy-deep); color: #dfe6ff; margin-top: 24px; padding: 32px 0 90px; font-size: .92rem; }
+.loja .rodape a { color: #fff; }
+.loja .rodape p { margin: 4px 0; }
+.loja .rodape-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.loja .rodape-nome { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.6rem; font-weight: 800; color: #fff; }
+.loja .rodape-titulo { font-weight: 700; color: var(--lime); }
+.loja .rodape-copy { margin-top: 24px !important; opacity: .7; font-size: .8rem; }
+
+@media (max-width: 860px) {
+  .loja .checkout { grid-template-columns: 1fr; }
+  .loja .vantagens { grid-template-columns: repeat(2, 1fr); }
+  .loja .grade { grid-template-columns: repeat(2, 1fr); }
+  .loja .rodape-grade { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .loja .hero-in { grid-template-columns: 1fr; padding-top: 24px; }
+  .loja .hero-foto { order: -1; }
+  .loja .hero-foto img { width: 220px; }
+  .loja .grade, .loja .grade-campos { grid-template-columns: 1fr; }
+  .loja .item { grid-template-columns: 56px 1fr; }
+  .loja .item img { width: 56px; height: 56px; }
+  .loja .item-acoes { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+  .loja .logo { font-size: 1.7rem; }
+}
