@@ -74,6 +74,16 @@
 - WhatsApp e retry/contingência das notificações ainda não implementados.
 - A branch `site-estatico-hostgator` ficou obsoleta (pode ser apagada quando o usuário quiser).
 
+## Atualização 2026-10-17 — publicação local (Windows)
+- Usuário optou por rodar localmente no próprio computador (Windows, com Node e PostgreSQL já instalados);
+  publicação no VPS adiada. Domínio `rufuspet.com.br` confirmado no Registro.br (válido até 19/05/2027).
+- Não foi possível consultar DNS/HTTPS do domínio daqui: a política de rede da sessão bloqueia
+  `dns.google`, `cloudflare-dns.com`, `rdap.registro.br` e `rufuspet.com.br` (403 no proxy).
+- Criado `docs/rodar-local-windows.md` (passo a passo PowerShell).
+- Validação: o roteiro foi seguido num clone novo da branch com banco vazio (Linux, PostgreSQL 16):
+  `npm install` → `npm run migrate` (001, 002, 003 aplicadas) → `criar-admin.js` → `/health` ok →
+  login admin ok (`NODE_ENV=development`) → `npm run build` do site ok. Não testado em Windows de fato.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
