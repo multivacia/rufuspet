@@ -9,7 +9,7 @@ online.
 - API: Node 20 + Express + PostgreSQL 15 (`pg`, sem ORM), migrations SQL
   versionadas com runner próprio
 - Web: React 19 + Vite + Tailwind CSS 4
-- Deploy: VPS Ubuntu, nginx + PM2 + certbot
+- Deploy: VPS Ubuntu, nginx + PM2 + certbot — ver `docs/deploy-vps.md` (scripts em `deploy/`)
 
 ## Rodando localmente
 

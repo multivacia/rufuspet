@@ -2,10 +2,11 @@ import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { pool } from '../src/db.js';
 
-const [, , email, senha] = process.argv;
+// A senha pode vir da variável ADMIN_SENHA para não ficar no histórico do terminal.
+const [, , email, senha = process.env.ADMIN_SENHA] = process.argv;
 
 if (!email || !senha) {
-  console.error('uso: node scripts/criar-admin.js <email> <senha>');
+  console.error('uso: node scripts/criar-admin.js <email> <senha>  (ou ADMIN_SENHA=... node scripts/criar-admin.js <email>)');
   process.exit(1);
 }
 
