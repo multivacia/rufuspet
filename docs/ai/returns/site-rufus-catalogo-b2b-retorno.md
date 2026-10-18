@@ -83,6 +83,13 @@
 - Validação: o roteiro foi seguido num clone novo da branch com banco vazio (Linux, PostgreSQL 16):
   `npm install` → `npm run migrate` (001, 002, 003 aplicadas) → `criar-admin.js` → `/health` ok →
   login admin ok (`NODE_ENV=development`) → `npm run build` do site ok. Não testado em Windows de fato.
+- Resultado no Windows do usuário (2026-10-18, PostgreSQL 18, Node 20+): migrations 001–003 ok, admin criado
+  (bcrypt ok apesar do aviso de install-scripts do npm), API na porta 3000, site na 5174 (5173 ocupada).
+  Pedido RFS-2026-0001 enviado, exibido no admin e TXT gravado em `api/pedidos/`. Preço alterado no admin
+  (Kit 3 rolos → R$ 1,90, teste do usuário) refletiu no pedido, como esperado.
+- Problemas encontrados e resolvidos no caminho: `psql` fora do PATH (usado caminho completo);
+  `.env` salvo sem `DATABASE_URL` (regravado via `Set-Content`).
+- Observação cosmética: tabela de Pedidos do admin fica apertada em telas médias (colunas quebram linha).
 
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
