@@ -131,6 +131,22 @@
   pedido); build web ok; teste real com SMTP falso: dois destinatários configurados no admin receberam o
   e-mail do pedido RFS-2026-0035 (uma tentativa anterior falhou porque o SMTP falso tinha caído com o ambiente).
 
+## Atualização 2026-10-18 — merge no main e preparação do deploy no VPS
+- Usuário validou o site e autorizou subir para `main` e publicar no VPS.
+- PR #1 (`feat/vitrine-unitaria-sem-estoque` → `main`) criado e mesclado: merge `13f8569` (main estava em `68e469e`,
+  sem divergência).
+- Diagnóstico do VPS (somente leitura, executado pelo usuário): Ubuntu 22.04, Node 22, PostgreSQL 18, nginx 1.18,
+  PM2 7, certbot; **já hospeda o SGP em produção** (`sgp-api` no PM2, site nginx `sgp.multivacia.com`, `/opt/sgp`);
+  portas 3000/3100 livres; IP 143.95.222.99; `rufuspet.com.br` sem DNS. Sudo com senha.
+- Decisão: instalação nova e isolada do SGP (pasta, porta 3100, banco/usuário, processo PM2 e site nginx próprios).
+- Criados `deploy/instalar.sh`, `deploy/atualizar.sh`, `deploy/nginx-rufuspet.conf`, `docs/deploy-vps.md`;
+  `criar-admin.js` aceita `ADMIN_SENHA` (senha fora do histórico).
+- Validação: instalação executada num VPS simulado (PM2 real, PostgreSQL de teste; sudo/nginx/certbot simulados):
+  banco + `.env` (600) criados, migrations 001–005, build, API saudável, site nginx gerado; corrigido aborto quando o
+  DNS não resolve; 2ª execução retoma sem refazer; `atualizar.sh` com backup (agora com permissão 600), migrations e
+  restart ok; admin via `ADMIN_SENHA` ok; pedido gerou TXT. nginx/certbot reais **não** testados aqui.
+- Pendente: DNS no Registro.br; execução no VPS pelo usuário (sem acesso SSH a partir desta sessão).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
