@@ -3,6 +3,7 @@ import { pool } from '../db.js';
 import { autenticar } from '../services/admin.service.js';
 import { autenticarAdmin, COOKIE_ADMIN } from '../middleware/auth.js';
 import { adminLoginRateLimit } from '../middleware/ratelimit.js';
+import { ErroLoja, atualizarLoja, buscarLoja } from '../services/loja.service.js';
 
 export const adminRouter = Router();
 
@@ -157,6 +158,25 @@ adminRouter.patch('/admin/pedidos/:id', autenticarAdmin, async (req, res, next) 
     }
     res.json(rows[0]);
   } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.get('/admin/loja', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.json(await buscarLoja());
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.put('/admin/loja', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.json(await atualizarLoja(req.body));
+  } catch (err) {
+    if (err instanceof ErroLoja) {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: err.message, campo: err.campo } });
+    }
     next(err);
   }
 });

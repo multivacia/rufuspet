@@ -69,7 +69,6 @@ Abra **outro** PowerShell:
 
 ```powershell
 cd $HOME\Documents\rufuspet\web
-copy .env.example .env
 npm install
 npm run dev
 ```
@@ -80,11 +79,27 @@ Abra no navegador:
 - Admin: http://localhost:5173/admin (e-mail e senha do passo 3)
 
 Os pedidos aparecem no admin e também como arquivo TXT em `rufuspet\api\pedidos\`.
+Os dados do rodapé (telefone, CNPJ etc.) são editados no admin → **Loja**.
 
 ## Ver no celular (mesma rede Wi-Fi)
 
 No PowerShell do site, pare com `Ctrl+C` e rode `npm run dev -- --host`. O Vite mostra um endereço
 `Network: http://192.168.x.x:5173` — abra no celular. Se não abrir, permita o Node no Firewall do Windows.
+
+## E-mail dos pedidos (Gmail)
+
+Acrescente no `api\.env` (senha de app em myaccount.google.com/apppasswords) e reinicie a API:
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=sua-conta@gmail.com
+SMTP_PASS=senha-de-app-de-16-letras
+EMAIL_REMETENTE="Rufus Pedidos <sua-conta@gmail.com>"
+```
+
+Se aparecer `self-signed certificate in certificate chain`, um antivírus (ex.: Kaspersky) está inspecionando
+o e-mail. Suba a API com `$env:NODE_OPTIONS="--use-system-ca"; npm run dev` (Node 22.15+).
 
 ## Problemas comuns
 

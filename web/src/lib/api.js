@@ -20,6 +20,18 @@ export function buscarProdutos() {
   return requisitar('/produtos');
 }
 
+export function buscarLoja() {
+  return requisitar('/loja');
+}
+
+export function adminBuscarLoja() {
+  return requisitar('/admin/loja');
+}
+
+export function adminAtualizarLoja(campos) {
+  return requisitar('/admin/loja', { method: 'PUT', body: JSON.stringify(campos) });
+}
+
 export function criarPedido(payload) {
   return requisitar('/pedidos', { method: 'POST', body: JSON.stringify(payload) });
 }

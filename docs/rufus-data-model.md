@@ -225,3 +225,11 @@ o estado vigente é `001` + `002` + `003`):
 - **Notificações:** após o commit, cada pedido é gravado como TXT em `PEDIDOS_PASTA`; e-mails
   (`canal = 'email'`) são enviados se `SMTP_HOST` estiver configurado; WhatsApp ainda não tem envio
   (fica `pendente`). Retry agendado/contingência ainda não implementados.
+
+## Migration 004 — dados da loja (2026-10-18)
+
+`loja_config`: tabela de uma linha (`id = 1`) com `nome`, `razao_social`, `cnpj`, `telefone`, `whatsapp`,
+`email_contato`, `endereco`, `horario`, `instagram` (texto, vazio = não exibido). Lida por `GET /api/loja`
+(rodapé do site, confirmação e e-mails) e editada por `PUT /api/admin/loja` (tela "Loja" do admin).
+CNPJ e e-mail são validados quando preenchidos; `nome` é obrigatório. Substitui as variáveis `VITE_LOJA_*`
+e `LOJA_NOME`.

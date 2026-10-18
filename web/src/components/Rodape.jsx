@@ -1,6 +1,7 @@
-import { loja } from '../lib/loja.js';
+import { useLoja } from '../lib/dadosLoja.jsx';
 
 export default function Rodape() {
+  const loja = useLoja();
   const whatsapp = loja.whatsapp.replace(/\D/g, '');
   return (
     <footer className="rodape">
@@ -26,9 +27,9 @@ export default function Rodape() {
               </a>
             </p>
           )}
-          {loja.email && (
+          {loja.emailContato && (
             <p>
-              E-mail: <a href={`mailto:${loja.email}`}>{loja.email}</a>
+              E-mail: <a href={`mailto:${loja.emailContato}`}>{loja.emailContato}</a>
             </p>
           )}
           {loja.horario && <p>{loja.horario}</p>}

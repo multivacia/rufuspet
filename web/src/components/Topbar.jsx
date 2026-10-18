@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useCarrinho } from '../lib/carrinho.jsx';
-import { loja } from '../lib/loja.js';
+import { useLoja } from '../lib/dadosLoja.jsx';
 import { Logo } from './Logo.jsx';
 
 export default function Topbar() {
+  const loja = useLoja();
   const { totalItens } = useCarrinho();
 
   return (

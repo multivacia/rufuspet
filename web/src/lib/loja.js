@@ -1,18 +1,4 @@
-// Dados da loja exibidos no site, lidos do arquivo de variáveis web/.env no build (prefixo VITE_).
-// Alterou? Rode "npm run build" de novo. Campos vazios não aparecem.
-const env = (nome, padrao = '') => (import.meta.env[nome] ?? '').trim() || padrao;
-
-export const loja = {
-  nome: env('VITE_LOJA_NOME', 'Rufus'),
-  razaoSocial: env('VITE_LOJA_RAZAO_SOCIAL'),
-  cnpj: env('VITE_LOJA_CNPJ'),
-  telefone: env('VITE_LOJA_TELEFONE'),
-  whatsapp: env('VITE_LOJA_WHATSAPP'),
-  email: env('VITE_LOJA_EMAIL_CONTATO'),
-  endereco: env('VITE_LOJA_ENDERECO'),
-  horario: env('VITE_LOJA_HORARIO_ATENDIMENTO'),
-  instagram: env('VITE_LOJA_INSTAGRAM'),
-};
+// Utilitários do formulário de pedido. Os dados da loja vêm da API (ver lib/dadosLoja.jsx).
 
 export const UFS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { buscarLoja } from '../services/loja.service.js';
 
 export const catalogoRouter = Router();
 
@@ -37,6 +38,14 @@ catalogoRouter.get('/produtos', async (req, res, next) => {
     }
 
     res.json(Array.from(grupos.values()));
+  } catch (err) {
+    next(err);
+  }
+});
+
+catalogoRouter.get('/loja', async (req, res, next) => {
+  try {
+    res.json(await buscarLoja());
   } catch (err) {
     next(err);
   }

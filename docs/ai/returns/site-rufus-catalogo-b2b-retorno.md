@@ -106,6 +106,21 @@
   perde o alinhamento das colunas em fonte proporcional (candidato a versão HTML).
 - Pendente: dados reais do rodapé e confirmação de nomes/descrições dos produtos.
 
+## Atualização 2026-10-18 — dados da loja no admin + e-mail em HTML
+- Pedido do usuário: rodapé editável "igual aos preços" e e-mail formatado.
+- `migrations/004_dados_da_loja.sql`: tabela `loja_config` (1 linha). `services/loja.service.js`, `GET /api/loja`,
+  `GET/PUT /api/admin/loja` (CNPJ/e-mail validados se preenchidos; nome obrigatório).
+- Web: `lib/dadosLoja.jsx` (contexto lido da API) usado no rodapé, cabeçalho e confirmação; nova tela admin **Loja**;
+  removidos `web/.env.example` e as variáveis `VITE_LOJA_*`; `LOJA_NOME` removido do `api/.env.example`.
+- E-mail: versão HTML (cabeçalho com a marca, dados do cliente, tabela de itens, total em destaque, observações,
+  rodapé com dados da loja) + texto puro como alternativa; Reply-To da confirmação = e-mail de contato da loja.
+- Validação: `npm test` (API) 18/18 ok (4 novos: loja pública/admin/validação; HTML com escape; versão cliente;
+  texto puro). Build web ok. E2E Playwright + SMTP falso: CNPJ inválido recusado na tela Loja; dados salvos
+  aparecem no rodapé; pedido com contato por e-mail → 2 e-mails `multipart/alternative` (interno com Reply-To do
+  cliente; cliente com Reply-To da loja); sem erros JS.
+- Infra de teste: o PostgreSQL de teste caiu uma vez (o ambiente restringe periodicamente a pasta temporária);
+  movido para `/var/lib/rufus-pg-teste` e a suíte foi repetida com sucesso.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

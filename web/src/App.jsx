@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProdutosProvider } from './lib/produtos.jsx';
 import { CarrinhoProvider } from './lib/carrinho.jsx';
+import { LojaProvider } from './lib/dadosLoja.jsx';
 import Topbar from './components/Topbar.jsx';
 import Rodape from './components/Rodape.jsx';
 import Catalogo from './views/Catalogo.jsx';
@@ -11,9 +12,11 @@ import AdminLayout from './components/admin/AdminLayout.jsx';
 import AdminLogin from './views/admin/Login.jsx';
 import AdminProdutos from './views/admin/Produtos.jsx';
 import AdminPedidos from './views/admin/Pedidos.jsx';
+import AdminLoja from './views/admin/Loja.jsx';
 
 function Loja() {
   return (
+    <LojaProvider>
     <ProdutosProvider>
       <CarrinhoProvider>
         <div className="loja">
@@ -33,6 +36,7 @@ function Loja() {
         </div>
       </CarrinhoProvider>
     </ProdutosProvider>
+    </LojaProvider>
   );
 }
 
@@ -45,6 +49,7 @@ export default function App() {
           <Route index element={<Navigate to="produtos" replace />} />
           <Route path="produtos" element={<AdminProdutos />} />
           <Route path="pedidos" element={<AdminPedidos />} />
+          <Route path="loja" element={<AdminLoja />} />
         </Route>
         <Route path="/*" element={<Loja />} />
       </Routes>

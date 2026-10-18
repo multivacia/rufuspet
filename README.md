@@ -30,14 +30,16 @@ npm run dev   # http://localhost:5173
 - **Pedido** (`/pedido`): revisão dos itens + dados da empresa (razão social, CNPJ, cidade/UF, contato).
   Sem pagamento online e sem controle de estoque.
 - **API** grava o pedido no PostgreSQL, gera o número `RFS-<ano>-<sequencial>` e, em seguida,
-  grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail para `EMAILS_INTERNOS` se houver SMTP.
-- **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status.
+  grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para `EMAILS_INTERNOS` se houver SMTP;
+  o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
+- **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
+  e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.).
 - O site pode ser instalado no celular (PWA).
 
 ## Configuração
 
 - `api/.env` (modelo `api/.env.example`): banco, JWT, pasta dos TXT, SMTP, e-mails internos.
-- `web/.env` (modelo `web/.env.example`): dados do rodapé (`VITE_LOJA_*`), lidos no build.
+- Dados do rodapé: no admin → **Loja** (gravados no banco; não há `.env` no `web`).
 - Criar o primeiro usuário do admin: `cd api && node scripts/criar-admin.js <email> <senha>`.
 
 ## Testes

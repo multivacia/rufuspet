@@ -40,6 +40,7 @@ after(async () => {
 beforeEach(async () => {
   if (!urlTeste) return;
   await pool.query('TRUNCATE pedidos, admin_usuarios RESTART IDENTITY CASCADE');
+  await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = ''");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
@@ -168,4 +169,35 @@ test('admin: login, altera preço unitário e lista pedido com dados da empresa'
   assert.equal(lista.pedidos[0].valor_total, '39.80');
 
   assert.equal((await fetch(`${base}/api/admin/pedidos`)).status, 401);
+});
+
+async function loginAdmin() {
+  const bcrypt = (await import('bcrypt')).default;
+  await pool.query('INSERT INTO admin_usuarios (email, senha_hash) VALUES ($1, $2)', ['admin@rufus.com', await bcrypt.hash('senha-forte', 4)]);
+  const login = await post('/api/admin/login', { email: 'admin@rufus.com', senha: 'senha-forte' });
+  return login.headers.get('set-cookie').split(';')[0];
+}
+
+test('dados da loja: público lê, admin altera e valida', opcoes, async () => {
+  assert.deepEqual(await (await fetch(`${base}/api/loja`)).json(), {
+    nome: 'Rufus', razaoSocial: '', cnpj: '', telefone: '', whatsapp: '', emailContato: '', endereco: '', horario: '', instagram: '',
+  });
+  const put = (corpo, cookie) =>
+    fetch(`${base}/api/admin/loja`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(corpo) });
+  assert.equal((await put({ telefone: '1' })).status, 401);
+
+  const cookie = await loginAdmin();
+  const ok = await put({ razaoSocial: 'Rufus Distribuidora Ltda', cnpj: '11.222.333/0001-81', telefone: ' (11) 4000-0000 ', instagram: '@rufuspet' }, cookie);
+  assert.equal(ok.status, 200);
+  const loja = await (await fetch(`${base}/api/loja`)).json();
+  assert.equal(loja.telefone, '(11) 4000-0000');
+  assert.equal(loja.cnpj, '11.222.333/0001-81');
+  assert.equal(loja.nome, 'Rufus');
+
+  for (const [corpo, campo] of [[{ cnpj: '123' }, 'cnpj'], [{ emailContato: 'x' }, 'emailContato'], [{ nome: '' }, 'nome'], [{ endereco: 'x'.repeat(201) }, 'endereco']]) {
+    const r = await put(corpo, cookie);
+    assert.equal(r.status, 400, JSON.stringify(corpo));
+    assert.equal((await r.json()).erro.campo, campo);
+  }
+  assert.equal((await put({ cnpj: '' }, cookie)).status, 200); // vazio é permitido (não aparece no site)
 });

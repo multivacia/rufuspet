@@ -1,8 +1,9 @@
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { brl } from '../lib/formato.js';
-import { loja } from '../lib/loja.js';
+import { useLoja } from '../lib/dadosLoja.jsx';
 
 export default function Confirmacao() {
+  const loja = useLoja();
   const { state } = useLocation();
 
   if (!state?.numero) {
