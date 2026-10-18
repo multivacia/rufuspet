@@ -98,6 +98,12 @@
   Reply-To do cliente + confirmação ao cliente), ambos `enviado`; pedido com contato por WhatsApp → 1 e-mail interno
   `enviado` e notificação WhatsApp `pendente`. Envio real pelo Gmail não testado daqui (rede da sessão bloqueia).
 - `api/.env.example`: instruções para Gmail. Senha de app configurada só pelo usuário, fora do chat e do Git.
+- Envio real pelo Gmail no Windows do usuário: falhou com "self-signed certificate in certificate chain" —
+  o Kaspersky Endpoint Security intercepta TLS na porta 465 (raiz "Kaspersky Endpoint Security Personal
+  Certification Authority"). Resolvido sem desligar a verificação TLS: `NODE_OPTIONS=--use-system-ca`
+  (Node 26 usa o repositório de certificados do Windows). Necessário só nessa máquina, não no VPS.
+- Pedido RFS-2026-0004: confirmação ao cliente recebida no Gmail. Observação cosmética: e-mail em texto puro
+  perde o alinhamento das colunas em fonte proporcional (candidato a versão HTML).
 - Pendente: dados reais do rodapé e confirmação de nomes/descrições dos produtos.
 
 ## Git
