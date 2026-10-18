@@ -91,6 +91,15 @@
   `.env` salvo sem `DATABASE_URL` (regravado via `Set-Content`).
 - Observação cosmética: tabela de Pedidos do admin fica apertada em telas médias (colunas quebram linha).
 
+## Atualização 2026-10-18 — e-mail dos pedidos
+- Decisão: envio pelo Gmail do usuário (senha de app), só ele recebe (`EMAILS_INTERNOS`), cópia ao cliente mantida
+  (enviada quando o cliente escolhe e-mail como contato preferido).
+- Validado com servidor SMTP falso local (aiosmtpd): pedido com contato por e-mail → 2 e-mails (interno com
+  Reply-To do cliente + confirmação ao cliente), ambos `enviado`; pedido com contato por WhatsApp → 1 e-mail interno
+  `enviado` e notificação WhatsApp `pendente`. Envio real pelo Gmail não testado daqui (rede da sessão bloqueia).
+- `api/.env.example`: instruções para Gmail. Senha de app configurada só pelo usuário, fora do chat e do Git.
+- Pendente: dados reais do rodapé e confirmação de nomes/descrições dos produtos.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
