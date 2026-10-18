@@ -10,7 +10,7 @@ async function requisitar(caminho, opcoes) {
 
   if (!resposta.ok) {
     const erro = dados?.erro ?? { codigo: 'ERRO_DESCONHECIDO', mensagem: 'Erro inesperado, tente novamente.' };
-    throw Object.assign(new Error(erro.mensagem), { codigo: erro.codigo, status: resposta.status });
+    throw Object.assign(new Error(erro.mensagem), { codigo: erro.codigo, campo: erro.campo, status: resposta.status });
   }
 
   return dados;
@@ -18,6 +18,18 @@ async function requisitar(caminho, opcoes) {
 
 export function buscarProdutos() {
   return requisitar('/produtos');
+}
+
+export function buscarLoja() {
+  return requisitar('/loja');
+}
+
+export function adminBuscarLoja() {
+  return requisitar('/admin/loja');
+}
+
+export function adminAtualizarLoja(campos) {
+  return requisitar('/admin/loja', { method: 'PUT', body: JSON.stringify(campos) });
 }
 
 export function criarPedido(payload) {
@@ -53,40 +65,23 @@ export function adminAtualizarPedido(id, campos) {
 }
 
 // Achata a resposta agrupada de GET /api/produtos numa lista de SKUs
-// comprariveis (uma linha por variante), pra facilitar consulta por sku
-// no carrinho e no checkout.
+// compráveis (uma linha por variante), pra facilitar consulta por sku
+// no pedido.
 export function achatarItensComprariveis(produtos) {
   const itens = [];
   for (const produto of produtos) {
-    if (produto.variantes) {
-      for (const variante of produto.variantes) {
-        itens.push({
-          sku: variante.sku,
-          grupo: produto.grupo,
-          nome: produto.nome,
-          descricao: produto.descricao,
-          cor: variante.cor,
-          hex: variante.hex,
-          imagem: variante.imagem,
-          unidade: produto.unidade,
-          precoCaixa: produto.precoCaixa,
-          qtdPorCaixa: produto.qtdPorCaixa,
-          limiteCaixas: variante.limiteCaixas,
-        });
-      }
-    } else {
+    const variantes = produto.variantes ?? [{ sku: produto.sku, cor: null, hex: null, imagem: produto.imagem }];
+    for (const variante of variantes) {
       itens.push({
-        sku: produto.sku,
-        grupo: null,
+        sku: variante.sku,
+        grupo: produto.grupo,
         nome: produto.nome,
         descricao: produto.descricao,
-        cor: null,
-        hex: null,
-        imagem: produto.imagem,
+        cor: variante.cor,
+        hex: variante.hex,
+        imagem: variante.imagem,
         unidade: produto.unidade,
-        precoCaixa: produto.precoCaixa,
-        qtdPorCaixa: produto.qtdPorCaixa,
-        limiteCaixas: produto.limiteCaixas,
+        precoUnitario: produto.precoUnitario,
       });
     }
   }

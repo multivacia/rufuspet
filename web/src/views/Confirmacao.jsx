@@ -1,7 +1,9 @@
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { brl } from '../lib/formato.js';
+import { useLoja } from '../lib/dadosLoja.jsx';
 
 export default function Confirmacao() {
+  const loja = useLoja();
   const { state } = useLocation();
 
   if (!state?.numero) {
@@ -9,21 +11,20 @@ export default function Confirmacao() {
   }
 
   return (
-    <section className="sec wrap">
-      <div className="confirmacao">
-        <div className="selo">✓</div>
-        <h1>Pedido confirmado!</h1>
-        <p className="numero mono">{state.numero}</p>
-        <p className="valor">{brl(state.valorTotal)}</p>
-        <p style={{ marginTop: 18, color: 'var(--ink-soft)' }}>
-          Em breve entramos em contato pra combinar frete e forma de pagamento.
-        </p>
-        <div style={{ marginTop: 28 }}>
-          <Link to="/" className="cta-primario">
-            Voltar ao catálogo
-          </Link>
-        </div>
+    <div className="conteudo pagina sucesso">
+      <div className="sucesso-icone" aria-hidden="true">
+        ✓
       </div>
-    </section>
+      <h1>Pedido enviado!</h1>
+      <p>
+        Número do pedido: <b>{state.numero}</b>
+      </p>
+      <p className="sucesso-valor">{brl(state.valorTotal)}</p>
+      <p>Recebemos seu pedido. Um vendedor entrará em contato em breve para combinar frete e forma de pagamento.</p>
+      {loja.telefone && <p>Se preferir, fale com a gente: {loja.telefone}</p>}
+      <Link to="/" className="botao">
+        Voltar ao catálogo
+      </Link>
+    </div>
   );
 }

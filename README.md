@@ -24,10 +24,37 @@ npm install
 npm run dev   # http://localhost:5173
 ```
 
+## Como funciona
+
+- **Vitrine** (`/`): produtos com foto, cor e preço por unidade; o lojista monta o pedido.
+- **Pedido** (`/pedido`): revisão dos itens + dados da empresa (razão social, CNPJ, cidade/UF, contato).
+  Sem pagamento online e sem controle de estoque.
+- **API** grava o pedido no PostgreSQL, gera o número `RFS-<ano>-<sequencial>` e, em seguida,
+  grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para os destinatários definidos no admin → **Loja** (ou `EMAILS_INTERNOS`
+  do `.env`, se vazio), quando há SMTP;
+  o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
+- **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
+  e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.).
+- O site pode ser instalado no celular (PWA).
+
+## Configuração
+
+- `api/.env` (modelo `api/.env.example`): banco, JWT, pasta dos TXT, SMTP, e-mails internos.
+- Dados do rodapé: no admin → **Loja** (gravados no banco; não há `.env` no `web`).
+- Criar o primeiro usuário do admin: `cd api && node scripts/criar-admin.js <email> <senha>`.
+
+## Testes
+
+```bash
+cd api
+DATABASE_URL_TESTE=postgres://usuario:senha@localhost:5432/rufus_teste npm test
+```
+
+O banco de teste é truncado a cada execução — use um banco descartável. Sem `DATABASE_URL_TESTE`,
+só os testes de regra (sem banco) rodam.
+
 ## Status
 
-Etapa 1 do kickoff concluída: scaffold dos dois projetos, `db.js` e
-`/health`. As próximas etapas (migrations a partir do data model, rotas de
-catálogo/pedidos/admin, port do protótipo aprovado) dependem de
-`docs/rufus-data-model.md` e `docs/prototipo-v6.html`, ainda não
-recebidos neste repositório.
+Etapas 1–7 do kickoff concluídas. Etapa 8 (2026-10-11): venda por unidade, sem estoque, dados da
+empresa no pedido, TXT do pedido, vitrine/pedido redesenhados, PWA (ver `docs/rufus-data-model.md`,
+seção "Migration 003"). Pendente: envio de WhatsApp, retry/contingência das notificações.
