@@ -121,6 +121,16 @@
 - Infra de teste: o PostgreSQL de teste caiu uma vez (o ambiente restringe periodicamente a pasta temporária);
   movido para `/var/lib/rufus-pg-teste` e a suíte foi repetida com sucesso.
 
+## Atualização 2026-10-18 — e-mail interno parametrizável
+- Pedido do usuário: parametrizar o e-mail interno e usá-lo no envio.
+- `migrations/005_emails_internos.sql`: `loja_config.emails_internos`. `loja.service.js`: campo privado
+  (só no admin), validação (cada endereço, máx. 10, normaliza minúsculas e remove duplicados) e
+  `destinatariosInternos()` (admin → fallback `EMAILS_INTERNOS`). `pedido.service.js` passa a usá-lo ao
+  enfileirar as notificações internas. Tela Loja do admin com o novo campo.
+- Validação: `npm test` 19/19 (novo teste: fallback do .env, validação, privacidade no GET público e uso no
+  pedido); build web ok; teste real com SMTP falso: dois destinatários configurados no admin receberam o
+  e-mail do pedido RFS-2026-0035 (uma tentativa anterior falhou porque o SMTP falso tinha caído com o ambiente).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

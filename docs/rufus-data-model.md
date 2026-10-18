@@ -233,3 +233,9 @@ o estado vigente é `001` + `002` + `003`):
 (rodapé do site, confirmação e e-mails) e editada por `PUT /api/admin/loja` (tela "Loja" do admin).
 CNPJ e e-mail são validados quando preenchidos; `nome` é obrigatório. Substitui as variáveis `VITE_LOJA_*`
 e `LOJA_NOME`.
+
+## Migration 005 — e-mails internos (2026-10-18)
+
+`loja_config.emails_internos` (texto, vários e-mails separados por vírgula, máx. 10): destinatários do aviso de
+novo pedido. Editado no admin (tela "Loja"); **não** é exposto em `GET /api/loja`. Usado ao enfileirar as
+notificações `email/interno` do pedido; se vazio, vale `EMAILS_INTERNOS` do `.env` da API.

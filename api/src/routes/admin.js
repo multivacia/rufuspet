@@ -164,7 +164,7 @@ adminRouter.patch('/admin/pedidos/:id', autenticarAdmin, async (req, res, next) 
 
 adminRouter.get('/admin/loja', autenticarAdmin, async (req, res, next) => {
   try {
-    res.json(await buscarLoja());
+    res.json(await buscarLoja({ incluirPrivados: true }));
   } catch (err) {
     next(err);
   }

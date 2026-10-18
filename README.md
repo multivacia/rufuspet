@@ -30,7 +30,8 @@ npm run dev   # http://localhost:5173
 - **Pedido** (`/pedido`): revisão dos itens + dados da empresa (razão social, CNPJ, cidade/UF, contato).
   Sem pagamento online e sem controle de estoque.
 - **API** grava o pedido no PostgreSQL, gera o número `RFS-<ano>-<sequencial>` e, em seguida,
-  grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para `EMAILS_INTERNOS` se houver SMTP;
+  grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para os destinatários definidos no admin → **Loja** (ou `EMAILS_INTERNOS`
+  do `.env`, se vazio), quando há SMTP;
   o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
 - **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
   e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.).

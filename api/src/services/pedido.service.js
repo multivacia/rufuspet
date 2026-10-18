@@ -7,6 +7,7 @@ import {
   validarItens,
   validarObservacoes,
 } from './regras-pedido.js';
+import { destinatariosInternos } from './loja.service.js';
 
 export { ErroPedido };
 
@@ -21,10 +22,7 @@ async function buscarPedidoExistente(idempotencyKey) {
 }
 
 async function enfileirarNotificacoes(client, pedidoId, contato) {
-  const emailsInternos = (process.env.EMAILS_INTERNOS || '')
-    .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean);
+  const emailsInternos = await destinatariosInternos(client);
 
   for (const destino of emailsInternos) {
     await client.query(

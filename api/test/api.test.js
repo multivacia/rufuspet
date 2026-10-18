@@ -40,7 +40,7 @@ after(async () => {
 beforeEach(async () => {
   if (!urlTeste) return;
   await pool.query('TRUNCATE pedidos, admin_usuarios RESTART IDENTITY CASCADE');
-  await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = ''");
+  await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = ''");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
@@ -200,4 +200,30 @@ test('dados da loja: público lê, admin altera e valida', opcoes, async () => {
     assert.equal((await r.json()).erro.campo, campo);
   }
   assert.equal((await put({ cnpj: '' }, cookie)).status, 200); // vazio é permitido (não aparece no site)
+});
+
+test('e-mails internos: editáveis no admin, privados e usados no aviso do pedido', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const put = (corpo) =>
+    fetch(`${base}/api/admin/loja`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(corpo) });
+
+  // Vazio no admin → usa EMAILS_INTERNOS do .env
+  await post('/api/pedidos', pedidoValido());
+  let { rows } = await pool.query("SELECT destino FROM notificacoes WHERE tipo = 'interno' ORDER BY id");
+  assert.deepEqual(rows.map((r) => r.destino), ['loja@exemplo.com']);
+
+  const invalido = await put({ emailsInternos: 'ok@x.com, ruim' });
+  assert.equal(invalido.status, 400);
+  assert.equal((await invalido.json()).erro.campo, 'emailsInternos');
+
+  const ok = await put({ emailsInternos: 'Vendas@Rufus.com; dono@rufus.com\n vendas@rufus.com' });
+  assert.equal(ok.status, 200);
+  assert.equal((await ok.json()).emailsInternos, 'vendas@rufus.com, dono@rufus.com');
+  assert.equal((await (await fetch(`${base}/api/admin/loja`, { headers: { cookie } })).json()).emailsInternos, 'vendas@rufus.com, dono@rufus.com');
+  assert.ok(!('emailsInternos' in (await (await fetch(`${base}/api/loja`)).json())), 'não pode ir para o site público');
+
+  await pool.query('TRUNCATE pedidos RESTART IDENTITY CASCADE');
+  await post('/api/pedidos', pedidoValido());
+  ({ rows } = await pool.query("SELECT destino FROM notificacoes WHERE tipo = 'interno' ORDER BY id"));
+  assert.deepEqual(rows.map((r) => r.destino), ['vendas@rufus.com', 'dono@rufus.com']);
 });

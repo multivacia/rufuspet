@@ -11,6 +11,7 @@ const CAMPOS = [
   ['endereco', 'Endereço ou região', 'Ex.: Grande São Paulo'],
   ['horario', 'Horário de atendimento', 'Ex.: Seg. a sex., 8h às 18h'],
   ['instagram', 'Instagram', '@usuario'],
+  ['emailsInternos', 'E-mails que recebem os pedidos', 'Não aparece no site. Separe vários por vírgula. Vazio = usa o EMAILS_INTERNOS do .env da API.'],
 ];
 
 export default function Loja() {
@@ -46,7 +47,7 @@ export default function Loja() {
     <>
       <h1 className="sec-title">
         Dados da loja
-        <small>Exibidos no rodapé do site e nos e-mails. Campos vazios não aparecem.</small>
+        <small>Exibidos no rodapé do site e nos e-mails (exceto os e-mails que recebem os pedidos). Campos vazios não aparecem.</small>
       </h1>
       <form onSubmit={salvar} style={{ maxWidth: 560 }}>
         {CAMPOS.map(([campo, rotulo, ajuda]) => (
