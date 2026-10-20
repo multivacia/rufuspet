@@ -2,6 +2,7 @@
 # Atualiza o Rufus para a versão mais recente do main: backup do banco, código, migrations, build e restart.
 #   bash /opt/rufuspet/deploy/atualizar.sh
 set -euo pipefail
+umask 022  # arquivos do site precisam ser legíveis pelo nginx (www-data)
 
 APP_DIR="${APP_DIR:-/opt/rufuspet}"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/rufuspet}"
@@ -14,9 +15,8 @@ passo "Backup do banco"
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 DATABASE_URL="$(grep -E '^DATABASE_URL=' api/.env | cut -d= -f2-)"
-umask 077
 ARQUIVO="$BACKUP_DIR/rufus-$(date +%Y%m%d-%H%M%S).sql.gz"
-pg_dump "$DATABASE_URL" | gzip > "$ARQUIVO"
+(umask 077; pg_dump "$DATABASE_URL" | gzip > "$ARQUIVO") # só o backup fica restrito ao dono
 echo "backup: $ARQUIVO"
 
 passo "Código"
@@ -34,6 +34,7 @@ passo "Site"
 cd "$APP_DIR/web"
 npm ci --no-audit --no-fund
 npm run build
+chmod -R a+rX "$APP_DIR/web/dist"
 
 passo "Reiniciando"
 pm2 restart rufus-api --update-env

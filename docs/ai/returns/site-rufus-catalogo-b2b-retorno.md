@@ -193,6 +193,18 @@
   antes, confirmar que o PM2 sobe sozinho no boot (`systemctl is-enabled pm2-deploy`).
 - Pendente do usuário: preencher WhatsApp e pedido mínimo no admin → Loja de produção e testar um pedido.
 
+## Atualização 2026-10-20 — 403 no site após atualizar.sh (defeito corrigido)
+- Sintoma: `https://rufuspet.com.br` respondeu 403 Forbidden (nginx) após o `atualizar.sh`.
+- Causa (defeito introduzido nesta atividade): `atualizar.sh` fazia `umask 077` para proteger o backup e não
+  restaurava; `npm run build` gerou `web/dist` legível só pelo `deploy` (`index.html` 600, `assets/` 700), e o
+  nginx (www-data) não conseguia ler.
+- Correção imediata (usuário, no VPS): `chmod -R a+rX /opt/rufuspet/web/dist`.
+- Correção do script: `umask 022` no início de `atualizar.sh` e `instalar.sh`; `umask 077` só no subshell do
+  backup; `chmod -R a+rX web/dist` após o build.
+- Validação no VPS simulado, rodando a partir de um shell com `umask 077`: script antigo → `index.html -rw-------`,
+  `assets drwx------` (reproduz o 403); script novo → `-rw-r--r--` / `drwxr-xr-x`; backup segue `-rw-------`.
+- Pendente: levar a correção ao `main` (PR) para a próxima atualização do VPS usar o script corrigido.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
