@@ -71,8 +71,11 @@
 .loja .cor > span:first-of-type { display: block; width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line); cursor: pointer; }
 .loja .cor input:checked + span { box-shadow: 0 0 0 3px var(--navy-deep); }
 .loja .cor input:focus-visible + span { outline: 3px solid var(--lime); outline-offset: 2px; }
-.loja .card-acoes { margin-top: auto; padding-top: 6px; display: flex; gap: 10px; align-items: center; }
-.loja .card-acoes .botao { flex: 1; }
+.loja .card-acoes { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+/* Base de 120px: cabe "Adicionado ✓"; sem espaço, o botão desce para a linha de baixo (largura total). */
+.loja .card-acoes .botao { flex: 1 1 120px; padding: 10px 12px; white-space: nowrap; }
+.loja .card-acoes .qtd button { width: 30px; }
+.loja .card-acoes .qtd input { width: 40px; }
 .loja .qtd { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; flex: none; }
 .loja .qtd button { border: 0; background: #eef3fb; width: 36px; font-size: 1.2rem; color: var(--navy-deep); cursor: pointer; }
 .loja .qtd input { width: 52px; border: 0; text-align: center; font: inherit; font-weight: 700; -moz-appearance: textfield; }

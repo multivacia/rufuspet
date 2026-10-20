@@ -173,8 +173,16 @@
 - Validação: API `npm test` 20/20 (novo teste do mínimo); web `npm test` 4/4; build ok; E2E Playwright: valor
   inválido recusado no admin; mínimo R$ 150,00 exibido; 1 un. (R$ 11,90) bloqueado com "Faltam R$ 138,10";
   13 un. (R$ 154,70) liberado e enviado; POST direto na API abaixo do mínimo → 422. Sem erros JS.
-- Observação cosmética (não alterada): o texto "Adicionado ✓" quebra linha no botão do card em telas largas.
+- Observação cosmética: o texto "Adicionado ✓" quebrava linha no botão do card em telas largas — corrigido (ver abaixo).
 - Branch `develop` (não publicada no VPS; `main` inalterado).
+
+## Atualização 2026-10-20 — botão "Adicionado ✓" do card
+- Causa: com 4 colunas (≥ 861px) o botão ficava com ~112px; "Adicionado ✓" precisa de ~120px e quebrava em 2 linhas.
+- Correção (só CSS, `web/src/loja.css`): seletor de quantidade do card mais compacto, botão sem quebra de texto
+  e com base de 120px; sem espaço, o botão desce para a linha de baixo com largura total (não "pula" ao trocar
+  o texto).
+- Validação: medição com Playwright antes/depois do clique em 390, 700, 860, 1024, 1180, 1280 e 1440px: altura
+  43px, sem transbordo; na mesma linha da quantidade exceto em 1024px (botão abaixo, largura total). Build ok.
 
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
