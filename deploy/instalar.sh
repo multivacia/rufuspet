@@ -7,6 +7,7 @@
 #
 # Pode ser rodado de novo se parar no meio: cada etapa pula o que já existe.
 set -euo pipefail
+umask 022  # arquivos do site precisam ser legíveis pelo nginx (www-data)
 
 DOMINIO="${DOMINIO:-rufuspet.com.br}"
 APP_DIR="${APP_DIR:-/opt/rufuspet}"
@@ -93,6 +94,7 @@ passo "Gerando o site"
 cd "$APP_DIR/web"
 npm ci --no-audit --no-fund
 npm run build
+chmod -R a+rX "$APP_DIR/web/dist"
 
 passo "Subindo a API no PM2 (rufus-api, porta $PORTA)"
 cd "$APP_DIR/api"
