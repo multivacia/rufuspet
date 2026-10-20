@@ -55,29 +55,42 @@ function texto(valor, { min, max, mensagem, campo }) {
   return limpo;
 }
 
+/**
+ * Dados da empresa: todos opcionais (o vendedor completa no contato). Se vierem preenchidos,
+ * são validados (CNPJ com dígito verificador, UF da lista).
+ */
 export function validarCliente(cliente) {
-  if (!cliente || typeof cliente !== 'object') throw invalido('Dados da empresa são obrigatórios', 'cliente');
-  const razaoSocial = texto(cliente.razaoSocial, { min: 2, max: 150, mensagem: 'Informe a razão social', campo: 'cliente.razaoSocial' });
-  const nomeFantasia = texto(cliente.nomeFantasia, { min: 0, max: 150, mensagem: 'Nome fantasia muito longo', campo: 'cliente.nomeFantasia' });
-  const cnpj = somenteDigitos(texto(cliente.cnpj, { min: 1, max: 20, mensagem: 'CNPJ inválido', campo: 'cliente.cnpj' }));
-  if (!cnpjValido(cnpj)) throw invalido('CNPJ inválido', 'cliente.cnpj');
-  const cidade = texto(cliente.cidade, { min: 2, max: 100, mensagem: 'Informe a cidade', campo: 'cliente.cidade' });
-  const uf = texto(cliente.uf, { min: 2, max: 2, mensagem: 'Selecione a UF', campo: 'cliente.uf' }).toUpperCase();
-  if (!UFS.includes(uf)) throw invalido('Selecione a UF', 'cliente.uf');
+  if (cliente != null && typeof cliente !== 'object') throw invalido('Dados da empresa inválidos', 'cliente');
+  const c = cliente ?? {};
+  const razaoSocial = texto(c.razaoSocial, { min: 0, max: 150, mensagem: 'Razão social muito longa', campo: 'cliente.razaoSocial' });
+  const nomeFantasia = texto(c.nomeFantasia, { min: 0, max: 150, mensagem: 'Nome fantasia muito longo', campo: 'cliente.nomeFantasia' });
+  const cnpj = somenteDigitos(texto(c.cnpj, { min: 0, max: 20, mensagem: 'CNPJ inválido', campo: 'cliente.cnpj' }));
+  if (cnpj && !cnpjValido(cnpj)) throw invalido('CNPJ inválido', 'cliente.cnpj');
+  const cidade = texto(c.cidade, { min: 0, max: 100, mensagem: 'Cidade muito longa', campo: 'cliente.cidade' });
+  const uf = texto(c.uf, { min: 0, max: 2, mensagem: 'Selecione a UF', campo: 'cliente.uf' }).toUpperCase();
+  if (uf && !UFS.includes(uf)) throw invalido('Selecione a UF', 'cliente.uf');
   return { razaoSocial, nomeFantasia, cnpj, cidade, uf };
 }
 
+/**
+ * Obrigatórios: nome e pelo menos um contato (WhatsApp ou e-mail). Se o canal preferido escolhido
+ * não foi informado, usa o outro.
+ */
 export function validarContato(contato) {
   if (!contato || typeof contato !== 'object') throw invalido('Contato é obrigatório', 'contato');
   const nome = texto(contato.nome, { min: 3, max: 100, mensagem: 'Nome deve ter pelo menos 3 caracteres', campo: 'contato.nome' });
-  const email = texto(contato.email, { min: 3, max: 150, mensagem: 'E-mail inválido', campo: 'contato.email' });
-  if (!EMAIL_REGEX.test(email)) throw invalido('E-mail inválido', 'contato.email');
+  const email = texto(contato.email, { min: 0, max: 150, mensagem: 'E-mail inválido', campo: 'contato.email' });
+  if (email && !EMAIL_REGEX.test(email)) throw invalido('E-mail inválido', 'contato.email');
   const whatsapp = somenteDigitos(contato.whatsapp);
-  if (whatsapp.length < 10 || whatsapp.length > 13) throw invalido('WhatsApp inválido', 'contato.whatsapp');
+  if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) throw invalido('WhatsApp inválido', 'contato.whatsapp');
+  if (!email && !whatsapp) throw invalido('Informe um WhatsApp ou e-mail para contato', 'contato.whatsapp');
   if (!['whatsapp', 'email'].includes(contato.canalPreferido)) {
     throw invalido('Escolha como prefere ser contatado', 'contato.canalPreferido');
   }
-  return { nome, email, whatsapp, canalPreferido: contato.canalPreferido };
+  let canalPreferido = contato.canalPreferido;
+  if (canalPreferido === 'whatsapp' && !whatsapp) canalPreferido = 'email';
+  if (canalPreferido === 'email' && !email) canalPreferido = 'whatsapp';
+  return { nome, email, whatsapp, canalPreferido };
 }
 
 export function validarObservacoes(valor) {

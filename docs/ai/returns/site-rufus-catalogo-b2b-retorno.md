@@ -205,6 +205,23 @@
   `assets drwx------` (reproduz o 403); script novo → `-rw-r--r--` / `drwxr-xr-x`; backup segue `-rw-------`.
 - Pendente: levar a correção ao `main` (PR) para a próxima atualização do VPS usar o script corrigido.
 
+## Atualização 2026-10-20 — consulta como PF (dados da empresa opcionais)
+- Pedido do usuário: clientes querem consultar como PF sem divulgar dados da empresa. Sugestões apresentadas
+  (cotação sem envio, cotação com contato mínimo, sinais de confiança/LGPD); decisão do usuário: manter um único
+  fluxo com **apenas nome e contato obrigatórios** (o vendedor sempre entra em contato).
+- API (`regras-pedido.js`): `validarCliente` com todos os campos opcionais (CNPJ/UF validados se preenchidos);
+  `validarContato` exige nome e pelo menos WhatsApp ou e-mail; canal preferido se ajusta ao contato informado.
+  Sem migration (colunas NOT NULL recebem texto vazio). E-mail/TXT mostram "—" para campos vazios; assunto usa o
+  nome do contato quando não há empresa; Reply-To só se houver e-mail.
+- Web: formulário "Seus dados" (nome*, WhatsApp, e-mail, "informe pelo menos um") + "Dados da empresa (opcional)";
+  admin → Pedidos mostra "Não informada" e omite separadores vazios; mensagem de WhatsApp usa "Nome:" quando não há
+  empresa (corrigido durante o teste: saía "Empresa: <nome da pessoa>").
+- Validação: API `npm test` 24/24 (novos: empresa opcional, contato mínimo/ajuste de canal, pedido só com nome+WhatsApp,
+  e-mail sem dados da empresa); web `npm test` 5/5; build ok; E2E Playwright: sem contato → erro no campo WhatsApp;
+  só nome + WhatsApp → pedido RFS-2026-0038 enviado e exibido no admin como "Não informada"; sem erros JS.
+- Ajuste de teste: a pasta de TXT de teste é limpa a cada teste (numeração reinicia por teste; em produção não reinicia).
+- Branch `develop` (não publicada; `main` e VPS sem esta mudança).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

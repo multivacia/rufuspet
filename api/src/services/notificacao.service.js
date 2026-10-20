@@ -23,13 +23,13 @@ export function textoPedido(pedido, itens) {
   const sub = '-'.repeat(60);
   const unidades = itens.reduce((s, i) => s + i.quantidade, 0);
   const campos = [
-    ['Razão social', pedido.razao_social],
+    ['Razão social', pedido.razao_social || '—'],
     ['Nome fantasia', pedido.nome_fantasia || '—'],
-    ['CNPJ', formatarCnpj(pedido.cnpj)],
-    ['Cidade/UF', `${pedido.cidade}/${pedido.uf}`],
+    ['CNPJ', formatarCnpj(pedido.cnpj) || '—'],
+    ['Cidade/UF', [pedido.cidade, pedido.uf].filter(Boolean).join('/') || '—'],
     ['Responsável', pedido.contato_nome],
-    ['WhatsApp', formatarWhatsapp(pedido.contato_whatsapp)],
-    ['E-mail', pedido.contato_email],
+    ['WhatsApp', pedido.contato_whatsapp ? formatarWhatsapp(pedido.contato_whatsapp) : '—'],
+    ['E-mail', pedido.contato_email || '—'],
     ['Prefere contato por', pedido.canal_preferido === 'email' ? 'E-mail' : 'WhatsApp'],
   ];
   const linhasItens = itens.map(
@@ -106,13 +106,13 @@ export function htmlPedido(pedido, itens, loja, { paraCliente = false } = {}) {
     `<td style="padding:4px 0;font-size:14px;color:#101A33"><b>${esc(valor)}</b></td></tr>`;
 
   const cliente = [
-    ['Razão social', pedido.razao_social],
+    ['Razão social', pedido.razao_social || '—'],
     ['Nome fantasia', pedido.nome_fantasia || '—'],
-    ['CNPJ', formatarCnpj(pedido.cnpj)],
-    ['Cidade/UF', `${pedido.cidade}/${pedido.uf}`],
+    ['CNPJ', formatarCnpj(pedido.cnpj) || '—'],
+    ['Cidade/UF', [pedido.cidade, pedido.uf].filter(Boolean).join('/') || '—'],
     ['Responsável', pedido.contato_nome],
-    ['WhatsApp', formatarWhatsapp(pedido.contato_whatsapp)],
-    ['E-mail', pedido.contato_email],
+    ['WhatsApp', pedido.contato_whatsapp ? formatarWhatsapp(pedido.contato_whatsapp) : '—'],
+    ['E-mail', pedido.contato_email || '—'],
     ['Prefere contato por', pedido.canal_preferido === 'email' ? 'E-mail' : 'WhatsApp'],
   ];
 
@@ -174,8 +174,8 @@ export function htmlPedido(pedido, itens, loja, { paraCliente = false } = {}) {
 function montarEmail(notificacao, pedido, itens, texto, loja) {
   if (notificacao.tipo === 'interno') {
     return {
-      replyTo: pedido.contato_email,
-      subject: `Novo pedido ${pedido.numero} — ${pedido.nome_fantasia || pedido.razao_social} (${brl(pedido.valor_total)})`,
+      replyTo: pedido.contato_email || undefined,
+      subject: `Novo pedido ${pedido.numero} — ${pedido.nome_fantasia || pedido.razao_social || pedido.contato_nome} (${brl(pedido.valor_total)})`,
       text: `Novo pedido recebido pelo site.\n\n${texto}`,
       html: htmlPedido(pedido, itens, loja),
     };

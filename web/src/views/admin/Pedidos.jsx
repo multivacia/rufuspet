@@ -86,17 +86,23 @@ export default function Pedidos() {
                     </td>
                     <td className="mono">{pedido.numero}</td>
                     <td>
-                      {pedido.nome_fantasia || pedido.razao_social}
-                      <br />
-                      <span className="pdesc">
-                        {formatarCnpj(pedido.cnpj)} · {pedido.cidade}/{pedido.uf}
-                      </span>
+                      {pedido.nome_fantasia || pedido.razao_social || <span className="pdesc">Não informada</span>}
+                      {(pedido.cnpj || pedido.cidade || pedido.uf) && (
+                        <>
+                          <br />
+                          <span className="pdesc">
+                            {[formatarCnpj(pedido.cnpj), [pedido.cidade, pedido.uf].filter(Boolean).join('/')]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td>
                       {pedido.contato_nome}
                       <br />
                       <span className="pdesc">
-                        {pedido.contato_email} · {pedido.contato_whatsapp} · prefere{' '}
+                        {[pedido.contato_email, pedido.contato_whatsapp].filter(Boolean).join(' · ')} · prefere{' '}
                         {pedido.canal_preferido === 'email' ? 'e-mail' : 'WhatsApp'}
                       </span>
                       {linkWhatsApp(pedido.contato_whatsapp) && (

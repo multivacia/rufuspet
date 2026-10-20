@@ -42,6 +42,8 @@ beforeEach(async () => {
   await pool.query('TRUNCATE pedidos, admin_usuarios RESTART IDENTITY CASCADE');
   await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = '', pedido_minimo = 0");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
+  // A numeração reinicia a cada teste; TXT de um teste anterior com o mesmo número não pode ser reaproveitado.
+  for (const arquivo of await fs.readdir(pastaPedidos)) await fs.unlink(path.join(pastaPedidos, arquivo));
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
 
@@ -137,6 +139,26 @@ test('pedido inválido responde 400 com o campo; produto inativo ou inexistente 
   assert.equal(inexistente.status, 422);
   const { rows } = await pool.query('SELECT count(*)::int AS n FROM pedidos');
   assert.equal(rows[0].n, 0);
+});
+
+test('pedido só com nome e WhatsApp é aceito; sem nenhum contato é recusado', opcoes, async () => {
+  const minimo = pedidoValido({ cliente: undefined, contato: { nome: 'João Pet', whatsapp: '(11) 97720-7655', canalPreferido: 'email' } });
+  const r = await post('/api/pedidos', minimo);
+  assert.equal(r.status, 201);
+  const { rows: [pedido] } = await pool.query('SELECT * FROM pedidos');
+  assert.deepEqual(
+    [pedido.razao_social, pedido.cnpj, pedido.cidade, pedido.uf, pedido.contato_email, pedido.canal_preferido],
+    ['', '', '', '', '', 'whatsapp'],
+  );
+  const txt = await esperarArquivo(path.join(pastaPedidos, `${r.corpo.numero}.txt`));
+  assert.match(txt, /Razão social:\s+—/);
+  assert.match(txt, /CNPJ:\s+—/);
+  const { rows: notif } = await pool.query("SELECT canal, destino FROM notificacoes WHERE tipo = 'cliente'");
+  assert.deepEqual(notif, [{ canal: 'whatsapp', destino: '11977207655' }]);
+
+  const semContato = await post('/api/pedidos', pedidoValido({ contato: { nome: 'João Pet', canalPreferido: 'whatsapp' } }));
+  assert.equal(semContato.status, 400);
+  assert.equal(semContato.corpo.erro.campo, 'contato.whatsapp');
 });
 
 test('campo invisível preenchido (robô) não grava pedido', opcoes, async () => {

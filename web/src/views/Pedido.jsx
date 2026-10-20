@@ -82,6 +82,7 @@ export default function Pedido() {
         state: {
           ...resultado,
           empresa: dados.nomeFantasia || dados.razaoSocial,
+          nome: dados.nome,
           itens: linhas.map((l) => ({
             quantidade: l.quantidade,
             nome: l.produto.nome,
@@ -162,56 +163,30 @@ export default function Pedido() {
         </section>
 
         <form onSubmit={enviar} className="painel formulario" noValidate>
-          <h2>Dados da sua empresa</h2>
-          <p className="ajuda">Não há pagamento pelo site. Um vendedor entra em contato para confirmar o pedido.</p>
+          <h2>Seus dados</h2>
+          <p className="ajuda">
+            Não há pagamento pelo site. Basta seu nome e um contato: um vendedor fala com você para confirmar o pedido.
+          </p>
 
           <div className="grade-campos">
             <label className="campo largo">
-              Razão social *
-              <input {...campo('razaoSocial')} required autoComplete="organization" />
-              {erroDe('razaoSocial')}
-            </label>
-            <label className="campo largo">
-              Nome fantasia
-              <input {...campo('nomeFantasia')} />
-            </label>
-            <label className="campo">
-              CNPJ *
-              <input {...campo('cnpj', mascaraCnpj)} required inputMode="numeric" placeholder="00.000.000/0000-00" />
-              {erroDe('cnpj')}
-            </label>
-            <label className="campo">
-              Responsável *
+              Nome *
               <input {...campo('nome')} required autoComplete="name" />
               {erroDe('nome')}
             </label>
             <label className="campo">
-              WhatsApp *
-              <input {...campo('whatsapp', mascaraTelefone)} required type="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
+              WhatsApp
+              <input {...campo('whatsapp', mascaraTelefone)} type="tel" autoComplete="tel" placeholder="(00) 00000-0000" />
               {erroDe('whatsapp')}
             </label>
             <label className="campo">
-              E-mail *
-              <input {...campo('email')} required type="email" autoComplete="email" />
+              E-mail
+              <input {...campo('email')} type="email" autoComplete="email" />
               {erroDe('email')}
             </label>
-            <label className="campo">
-              Cidade *
-              <input {...campo('cidade')} required autoComplete="address-level2" />
-              {erroDe('cidade')}
-            </label>
-            <label className="campo">
-              UF *
-              <select {...campo('uf')} required>
-                <option value="">Selecione</option>
-                {UFS.map((uf) => (
-                  <option key={uf}>{uf}</option>
-                ))}
-              </select>
-              {erroDe('uf')}
-            </label>
+            <p className="campo largo nota-campo">* Informe pelo menos um contato: WhatsApp ou e-mail.</p>
             <fieldset className="campo largo canal">
-              <legend>Prefere ser contatado por *</legend>
+              <legend>Prefere ser contatado por</legend>
               {[
                 ['whatsapp', 'WhatsApp'],
                 ['email', 'E-mail'],
@@ -228,6 +203,41 @@ export default function Pedido() {
                 </label>
               ))}
             </fieldset>
+          </div>
+
+          <h3 className="subtitulo-form">
+            Dados da empresa <span>(opcional — o vendedor pode completar depois)</span>
+          </h3>
+          <div className="grade-campos">
+            <label className="campo largo">
+              Razão social
+              <input {...campo('razaoSocial')} autoComplete="organization" />
+              {erroDe('razaoSocial')}
+            </label>
+            <label className="campo">
+              Nome fantasia
+              <input {...campo('nomeFantasia')} />
+            </label>
+            <label className="campo">
+              CNPJ
+              <input {...campo('cnpj', mascaraCnpj)} inputMode="numeric" placeholder="00.000.000/0000-00" />
+              {erroDe('cnpj')}
+            </label>
+            <label className="campo">
+              Cidade
+              <input {...campo('cidade')} autoComplete="address-level2" />
+              {erroDe('cidade')}
+            </label>
+            <label className="campo">
+              UF
+              <select {...campo('uf')}>
+                <option value="">Selecione</option>
+                {UFS.map((uf) => (
+                  <option key={uf}>{uf}</option>
+                ))}
+              </select>
+              {erroDe('uf')}
+            </label>
             <label className="campo largo">
               Observações
               <textarea {...campo('observacoes')} rows={3} maxLength={1000} placeholder="Ex.: melhor horário para contato, prazo desejado…" />
