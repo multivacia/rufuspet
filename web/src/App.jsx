@@ -16,7 +16,6 @@ import AdminLoja from './views/admin/Loja.jsx';
 
 function Loja() {
   return (
-    <LojaProvider>
     <ProdutosProvider>
       <CarrinhoProvider>
         <div className="loja">
@@ -36,12 +35,12 @@ function Loja() {
         </div>
       </CarrinhoProvider>
     </ProdutosProvider>
-    </LojaProvider>
   );
 }
 
 export default function App() {
   return (
+    <LojaProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -54,5 +53,6 @@ export default function App() {
         <Route path="/*" element={<Loja />} />
       </Routes>
     </BrowserRouter>
+    </LojaProvider>
   );
 }

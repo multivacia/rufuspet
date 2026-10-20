@@ -35,6 +35,9 @@ npm run dev   # http://localhost:5173
   o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
 - **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
   e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.).
+- **WhatsApp (links wa.me, sem API):** na confirmação, o cliente pode enviar o pedido pelo WhatsApp da loja
+  (número do admin → Loja), com itens e total já escritos; no admin → Pedidos, "Falar no WhatsApp" abre conversa
+  com o cliente. Nada é enviado automaticamente: a pessoa confirma no próprio WhatsApp.
 - O site pode ser instalado no celular (PWA).
 
 ## Configuração
@@ -44,6 +47,9 @@ npm run dev   # http://localhost:5173
 - Criar o primeiro usuário do admin: `cd api && node scripts/criar-admin.js <email> <senha>`.
 
 ## Testes
+
+Web (utilitários, sem banco): `cd web && npm test`.
+
 
 ```bash
 cd api

@@ -74,7 +74,19 @@ export default function Pedido() {
       pedidoEnviadoRef.current = true;
       limparCarrinho();
       renovarIdempotencyKey();
-      navigate('/pedido/enviado', { state: resultado, replace: true });
+      navigate('/pedido/enviado', {
+        state: {
+          ...resultado,
+          empresa: dados.nomeFantasia || dados.razaoSocial,
+          itens: linhas.map((l) => ({
+            quantidade: l.quantidade,
+            nome: l.produto.nome,
+            cor: l.produto.cor,
+            precoUnitario: l.produto.precoUnitario,
+          })),
+        },
+        replace: true,
+      });
     } catch (err) {
       setErro({ mensagem: err.message || 'Não foi possível enviar o pedido. Tente novamente.', campo: err.campo });
     } finally {

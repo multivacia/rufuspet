@@ -17,6 +17,8 @@
 .loja .botao:disabled { opacity: .6; cursor: wait; }
 .loja .botao-grande { padding: 14px 28px; font-size: 1.05rem; }
 .loja .botao-claro { background: #fff; color: var(--navy-deep); }
+.loja .botao-whatsapp { background: #25D366; color: #08361b; }
+.loja .botao-whatsapp:hover { background: #1ebe5a; }
 .loja .botao-claro:hover { background: #e8eefb; }
 
 /* Cabeçalho */

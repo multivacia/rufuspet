@@ -147,6 +147,21 @@
   restart ok; admin via `ADMIN_SENHA` ok; pedido gerou TXT. nginx/certbot reais **não** testados aqui.
 - Pendente: DNS no Registro.br; execução no VPS pelo usuário (sem acesso SSH a partir desta sessão).
 
+## Atualização 2026-10-20 — deploy concluído e WhatsApp (opção 1, links wa.me)
+- VPS: `instalar.sh` executado pelo usuário; `rufus-api` online (porta 3100) ao lado do `sgp-api` (inalterado);
+  HTTPS emitido para `rufuspet.com.br` e `www` (certbot). DNS no Registro.br: A `@` e `www` → 143.95.222.99
+  (CNAME duplicado do `www` removido). Pendente do usuário: criar admin, SMTP no `.env` do VPS, dados da Loja.
+- WhatsApp: pesquisadas as opções (links wa.me; API oficial Meta Cloud/BSPs com custo por mensagem e modelos
+  aprovados; libs não oficiais com risco de banimento). Usuário escolheu a opção 1, na branch `develop`
+  (criada a partir do `main` `982b6ed`).
+- Implementado: `web/src/lib/whatsapp.js` (normaliza número com 55, monta link e mensagens);
+  confirmação com botão "Enviar pedido pelo WhatsApp" (itens e total na mensagem; só aparece se a Loja tiver
+  WhatsApp); admin → Pedidos com "Falar no WhatsApp" por pedido (mensagem com primeiro nome, número e total);
+  rodapé usa o mesmo utilitário; `LojaProvider` passou a envolver também o admin.
+- Validação: `web npm test` 4/4 (novo); build ok; E2E Playwright: links `wa.me/5511977207655` (loja) e
+  `wa.me/5511987654321` (cliente) com mensagens corretas; sem erros JS.
+- Envio automático de WhatsApp (API oficial) continua não implementado; notificações `whatsapp` seguem `pendente`.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
