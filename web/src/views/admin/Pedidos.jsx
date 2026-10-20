@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
 import { adminListarPedidos, adminAtualizarPedido } from '../../lib/api.js';
 import { brl } from '../../lib/formato.js';
+import { useLoja } from '../../lib/dadosLoja.jsx';
+import { linkWhatsApp, mensagemLojaParaCliente } from '../../lib/whatsapp.js';
 
 const STATUS_OPCOES = ['novo', 'confirmado', 'faturado', 'cancelado'];
 
@@ -13,6 +15,7 @@ function formatarData(iso) {
 }
 
 export default function Pedidos() {
+  const loja = useLoja();
   const [dados, setDados] = useState(null);
   const [pagina, setPagina] = useState(1);
   const [expandido, setExpandido] = useState(null);
@@ -96,6 +99,19 @@ export default function Pedidos() {
                         {pedido.contato_email} · {pedido.contato_whatsapp} · prefere{' '}
                         {pedido.canal_preferido === 'email' ? 'e-mail' : 'WhatsApp'}
                       </span>
+                      {linkWhatsApp(pedido.contato_whatsapp) && (
+                        <>
+                          <br />
+                          <a
+                            className="link-whatsapp mono"
+                            href={linkWhatsApp(pedido.contato_whatsapp, mensagemLojaParaCliente(pedido, loja.nome))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Falar no WhatsApp ↗
+                          </a>
+                        </>
+                      )}
                     </td>
                     <td className="mono">{brl(pedido.valor_total)}</td>
                     <td>

@@ -6,6 +6,7 @@ import { criarPedido } from '../lib/api.js';
 import { brl } from '../lib/formato.js';
 import { UFS, mascaraCnpj, mascaraTelefone } from '../lib/loja.js';
 import Quantidade from '../components/Quantidade.jsx';
+import { useLoja } from '../lib/dadosLoja.jsx';
 
 const VAZIO = {
   razaoSocial: '',
@@ -23,6 +24,7 @@ const VAZIO = {
 export default function Pedido() {
   const { itens, idempotencyKey, alterarQuantidade, removerItem, limparCarrinho, renovarIdempotencyKey } = useCarrinho();
   const { itensPorSku, carregando } = useProdutos();
+  const { pedidoMinimo } = useLoja();
   const navigate = useNavigate();
   const [dados, setDados] = useState(VAZIO);
   const [aceite, setAceite] = useState(false);
@@ -37,6 +39,8 @@ export default function Pedido() {
     .filter((l) => l.produto);
   const totalUnidades = linhas.reduce((s, l) => s + l.quantidade, 0);
   const total = linhas.reduce((s, l) => s + l.produto.precoUnitario * l.quantidade, 0);
+  // Centavos para a comparação não falhar por arredondamento (ex.: 149,99999).
+  const falta = Math.max(0, Math.round(pedidoMinimo * 100) - Math.round(total * 100)) / 100;
 
   const campo = (nome, mascara) => ({
     id: nome,
@@ -74,7 +78,19 @@ export default function Pedido() {
       pedidoEnviadoRef.current = true;
       limparCarrinho();
       renovarIdempotencyKey();
-      navigate('/pedido/enviado', { state: resultado, replace: true });
+      navigate('/pedido/enviado', {
+        state: {
+          ...resultado,
+          empresa: dados.nomeFantasia || dados.razaoSocial,
+          itens: linhas.map((l) => ({
+            quantidade: l.quantidade,
+            nome: l.produto.nome,
+            cor: l.produto.cor,
+            precoUnitario: l.produto.precoUnitario,
+          })),
+        },
+        replace: true,
+      });
     } catch (err) {
       setErro({ mensagem: err.message || 'Não foi possível enviar o pedido. Tente novamente.', campo: err.campo });
     } finally {
@@ -129,6 +145,17 @@ export default function Pedido() {
             </span>
             <b>{brl(total)}</b>
           </div>
+          {pedidoMinimo > 0 && (
+            <p className={falta > 0 ? 'aviso-minimo' : 'aviso-minimo ok'} role="status">
+              {falta > 0 ? (
+                <>
+                  Pedido mínimo: <b>{brl(pedidoMinimo)}</b>. Faltam <b>{brl(falta)}</b> para enviar.
+                </>
+              ) : (
+                <>✓ Pedido mínimo de {brl(pedidoMinimo)} atingido.</>
+              )}
+            </p>
+          )}
           <Link to="/#produtos" className="link-continuar">
             ← Continuar escolhendo
           </Link>
@@ -223,8 +250,8 @@ export default function Pedido() {
             </p>
           )}
 
-          <button type="submit" className="botao botao-grande" disabled={enviando}>
-            {enviando ? 'Enviando…' : 'Enviar pedido'}
+          <button type="submit" className="botao botao-grande" disabled={enviando || falta > 0}>
+            {enviando ? 'Enviando…' : falta > 0 ? `Faltam ${brl(falta)} para o pedido mínimo` : 'Enviar pedido'}
           </button>
         </form>
       </div>

@@ -239,3 +239,11 @@ e `LOJA_NOME`.
 `loja_config.emails_internos` (texto, vários e-mails separados por vírgula, máx. 10): destinatários do aviso de
 novo pedido. Editado no admin (tela "Loja"); **não** é exposto em `GET /api/loja`. Usado ao enfileirar as
 notificações `email/interno` do pedido; se vazio, vale `EMAILS_INTERNOS` do `.env` da API.
+
+## Migration 006 — pedido mínimo (2026-10-20)
+
+`loja_config.pedido_minimo NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (>= 0)`: valor mínimo do pedido em reais,
+editado no admin (tela "Loja"); `0` = sem mínimo. Exposto em `GET /api/loja` como `pedidoMinimo` (número).
+`POST /api/pedidos` recusa com **422 `PEDIDO_MINIMO`** quando o total calculado no servidor fica abaixo do
+mínimo (mensagem informa quanto falta). O site mostra o mínimo no catálogo, na barra do pedido e na página
+do pedido, e desabilita o envio enquanto não for atingido.

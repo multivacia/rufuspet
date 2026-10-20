@@ -61,3 +61,6 @@ a{color:inherit}
 .tabela-itens th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:6px 8px}
 .tabela-itens td{padding:6px 8px;font-size:12.5px;border-top:1px solid var(--line-soft)}
 .tabela-admin .form-campo input[type="text"]{width:100%;height:42px}
+
+.link-whatsapp{display:inline-block;margin-top:4px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#128C4A;text-decoration:none;border:1px solid #25D366;border-radius:3px;padding:3px 8px}
+.link-whatsapp:hover{background:#E8F9EF}

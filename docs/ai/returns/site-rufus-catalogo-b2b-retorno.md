@@ -147,6 +147,43 @@
   restart ok; admin via `ADMIN_SENHA` ok; pedido gerou TXT. nginx/certbot reais **não** testados aqui.
 - Pendente: DNS no Registro.br; execução no VPS pelo usuário (sem acesso SSH a partir desta sessão).
 
+## Atualização 2026-10-20 — deploy concluído e WhatsApp (opção 1, links wa.me)
+- VPS: `instalar.sh` executado pelo usuário; `rufus-api` online (porta 3100) ao lado do `sgp-api` (inalterado);
+  HTTPS emitido para `rufuspet.com.br` e `www` (certbot). DNS no Registro.br: A `@` e `www` → 143.95.222.99
+  (CNAME duplicado do `www` removido). Pendente do usuário: criar admin, SMTP no `.env` do VPS, dados da Loja.
+- WhatsApp: pesquisadas as opções (links wa.me; API oficial Meta Cloud/BSPs com custo por mensagem e modelos
+  aprovados; libs não oficiais com risco de banimento). Usuário escolheu a opção 1, na branch `develop`
+  (criada a partir do `main` `982b6ed`).
+- Implementado: `web/src/lib/whatsapp.js` (normaliza número com 55, monta link e mensagens);
+  confirmação com botão "Enviar pedido pelo WhatsApp" (itens e total na mensagem; só aparece se a Loja tiver
+  WhatsApp); admin → Pedidos com "Falar no WhatsApp" por pedido (mensagem com primeiro nome, número e total);
+  rodapé usa o mesmo utilitário; `LojaProvider` passou a envolver também o admin.
+- Validação: `web npm test` 4/4 (novo); build ok; E2E Playwright: links `wa.me/5511977207655` (loja) e
+  `wa.me/5511987654321` (cliente) com mensagens corretas; sem erros JS.
+- Envio automático de WhatsApp (API oficial) continua não implementado; notificações `whatsapp` seguem `pendente`.
+
+## Atualização 2026-10-20 — pedido mínimo
+- Pedido do usuário: mensagem de valor do pedido mínimo, parametrizado no /admin junto com os dados da loja.
+- Decisão técnica (informada ao usuário): além da mensagem, o mínimo é **validado na API** (backend é a fonte da
+  regra) e o envio fica desabilitado no site; `0` = sem mínimo.
+- `migrations/006_pedido_minimo.sql`; `loja.service.js` (`pedidoMinimo` público; aceita 150, "150,00", "1.250,50";
+  recusa negativo, texto, 3 casas, > 1.000.000); `pedido.service.js` → 422 `PEDIDO_MINIMO` com quanto falta.
+- Web: mínimo no hero e na nota do catálogo; barra do pedido mostra quanto falta; página do pedido com aviso
+  (amarelo/verde) e botão desabilitado com "Faltam R$ X"; campo "Pedido mínimo (R$)" na tela Loja.
+- Validação: API `npm test` 20/20 (novo teste do mínimo); web `npm test` 4/4; build ok; E2E Playwright: valor
+  inválido recusado no admin; mínimo R$ 150,00 exibido; 1 un. (R$ 11,90) bloqueado com "Faltam R$ 138,10";
+  13 un. (R$ 154,70) liberado e enviado; POST direto na API abaixo do mínimo → 422. Sem erros JS.
+- Observação cosmética: o texto "Adicionado ✓" quebrava linha no botão do card em telas largas — corrigido (ver abaixo).
+- Branch `develop` (não publicada no VPS; `main` inalterado).
+
+## Atualização 2026-10-20 — botão "Adicionado ✓" do card
+- Causa: com 4 colunas (≥ 861px) o botão ficava com ~112px; "Adicionado ✓" precisa de ~120px e quebrava em 2 linhas.
+- Correção (só CSS, `web/src/loja.css`): seletor de quantidade do card mais compacto, botão sem quebra de texto
+  e com base de 120px; sem espaço, o botão desce para a linha de baixo com largura total (não "pula" ao trocar
+  o texto).
+- Validação: medição com Playwright antes/depois do clique em 390, 700, 860, 1024, 1180, 1280 e 1440px: altura
+  43px, sem transbordo; na mesma linha da quantidade exceto em 1024px (botão abaixo, largura total). Build ok.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

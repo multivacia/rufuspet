@@ -3,7 +3,7 @@ import { buscarLoja } from './api.js';
 
 // Dados da loja (rodapé, confirmação), editados no admin → tela "Loja".
 const PADRAO = {
-  nome: 'Rufus', razaoSocial: '', cnpj: '', telefone: '', whatsapp: '', emailContato: '', endereco: '', horario: '', instagram: '',
+  nome: 'Rufus', razaoSocial: '', cnpj: '', telefone: '', whatsapp: '', emailContato: '', endereco: '', horario: '', instagram: '', pedidoMinimo: 0,
 };
 
 const LojaContext = createContext(PADRAO);

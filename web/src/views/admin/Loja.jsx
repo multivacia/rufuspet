@@ -70,6 +70,25 @@ export default function Loja() {
             )}
           </div>
         ))}
+        <div className="form-campo">
+          <label htmlFor="loja-pedidoMinimo">Pedido mínimo (R$)</label>
+          <input
+            id="loja-pedidoMinimo"
+            type="text"
+            inputMode="decimal"
+            value={dados.pedidoMinimo ?? ''}
+            aria-invalid={erro?.campo === 'pedidoMinimo' || undefined}
+            onChange={(e) => {
+              setSalvo(false);
+              setDados((d) => ({ ...d, pedidoMinimo: e.target.value }));
+            }}
+          />
+          {erro?.campo === 'pedidoMinimo' ? (
+            <p className="alerta-erro" style={{ margin: '6px 0 0' }}>{erro.mensagem}</p>
+          ) : (
+            <p className="pdesc">Ex.: 150,00. Use 0 para não ter mínimo. Pedidos abaixo do valor não podem ser enviados.</p>
+          )}
+        </div>
         {erro && !erro.campo && <p className="alerta-erro">{erro.mensagem}</p>}
         <button type="submit" className="cta-primario" disabled={salvando}>
           {salvando ? 'Salvando…' : 'Salvar'}

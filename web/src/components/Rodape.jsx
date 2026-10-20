@@ -1,8 +1,9 @@
 import { useLoja } from '../lib/dadosLoja.jsx';
+import { linkWhatsApp } from '../lib/whatsapp.js';
 
 export default function Rodape() {
   const loja = useLoja();
-  const whatsapp = loja.whatsapp.replace(/\D/g, '');
+  const whatsapp = linkWhatsApp(loja.whatsapp);
   return (
     <footer className="rodape">
       <div className="conteudo rodape-grade">
@@ -22,7 +23,7 @@ export default function Rodape() {
           {whatsapp && (
             <p>
               WhatsApp:{' '}
-              <a href={`https://wa.me/${whatsapp.length <= 11 ? `55${whatsapp}` : whatsapp}`} target="_blank" rel="noopener noreferrer">
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer">
                 {loja.whatsapp}
               </a>
             </p>
