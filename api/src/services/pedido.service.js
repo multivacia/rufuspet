@@ -1,7 +1,9 @@
+import { randomInt } from 'node:crypto';
 import { pool } from '../db.js';
 import {
   ErroPedido,
   calcularTotal,
+  gerarCodigoPublico,
   validarCliente,
   validarContato,
   validarItens,
@@ -15,7 +17,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 async function buscarPedidoExistente(idempotencyKey) {
   const { rows } = await pool.query(
-    'SELECT id, numero, valor_total FROM pedidos WHERE idempotency_key = $1',
+    'SELECT id, numero, codigo_publico, valor_total FROM pedidos WHERE idempotency_key = $1',
     [idempotencyKey],
   );
   return rows[0] ?? null;
@@ -52,7 +54,7 @@ export async function criarPedido({ idempotencyKey, cliente, contato, itens, obs
 
   const existente = await buscarPedidoExistente(idempotencyKey);
   if (existente) {
-    return { id: existente.id, numero: existente.numero, valorTotal: Number(existente.valor_total), reaproveitado: true };
+    return { id: existente.id, numero: existente.numero, codigo: existente.codigo_publico, valorTotal: Number(existente.valor_total), reaproveitado: true };
   }
 
   const itensValidos = validarItens(itens);
@@ -95,28 +97,45 @@ export async function criarPedido({ idempotencyKey, cliente, contato, itens, obs
     const { rows: numeroRows } = await client.query('SELECT proximo_numero_pedido($1) AS numero', [ano]);
     const numero = numeroRows[0].numero;
 
-    const { rows: pedidoRows } = await client.query(
-      `INSERT INTO pedidos
-         (numero, idempotency_key, razao_social, nome_fantasia, cnpj, cidade, uf,
-          contato_nome, contato_email, contato_whatsapp, canal_preferido, valor_total, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING id`,
-      [
-        numero,
-        idempotencyKey,
-        clienteValido.razaoSocial,
-        clienteValido.nomeFantasia,
-        clienteValido.cnpj,
-        clienteValido.cidade,
-        clienteValido.uf,
-        contatoValido.nome,
-        contatoValido.email,
-        contatoValido.whatsapp,
-        contatoValido.canalPreferido,
-        valorTotal,
-        observacoesValidas || null,
-      ],
-    );
+    // Código público sorteado; em caso raro de colisão, desfaz só o INSERT (savepoint) e sorteia outro.
+    let codigo;
+    let pedidoRows;
+    for (let tentativa = 1; ; tentativa++) {
+      codigo = gerarCodigoPublico(new Date(), randomInt, process.env.FUSO_HORARIO || 'America/Sao_Paulo');
+      await client.query('SAVEPOINT codigo_publico');
+      try {
+        ({ rows: pedidoRows } = await client.query(
+          `INSERT INTO pedidos
+             (numero, codigo_publico, idempotency_key, razao_social, nome_fantasia, cnpj, cidade, uf,
+              contato_nome, contato_email, contato_whatsapp, canal_preferido, valor_total, observacoes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+           RETURNING id`,
+          [
+            numero,
+            codigo,
+            idempotencyKey,
+            clienteValido.razaoSocial,
+            clienteValido.nomeFantasia,
+            clienteValido.cnpj,
+            clienteValido.cidade,
+            clienteValido.uf,
+            contatoValido.nome,
+            contatoValido.email,
+            contatoValido.whatsapp,
+            contatoValido.canalPreferido,
+            valorTotal,
+            observacoesValidas || null,
+          ],
+        ));
+        break;
+      } catch (err) {
+        if (err.code === '23505' && err.constraint === 'pedidos_codigo_publico_key' && tentativa < 10) {
+          await client.query('ROLLBACK TO SAVEPOINT codigo_publico');
+          continue;
+        }
+        throw err;
+      }
+    }
     const pedidoId = pedidoRows[0].id;
 
     for (const { produto, quantidade } of linhas) {
@@ -133,13 +152,13 @@ export async function criarPedido({ idempotencyKey, cliente, contato, itens, obs
 
     await client.query('COMMIT');
 
-    return { id: pedidoId, numero, valorTotal, reaproveitado: false };
+    return { id: pedidoId, numero, codigo, valorTotal, reaproveitado: false };
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.code === '23505' && err.constraint === 'pedidos_idempotency_key_key') {
       const jaExiste = await buscarPedidoExistente(idempotencyKey);
       if (jaExiste) {
-        return { id: jaExiste.id, numero: jaExiste.numero, valorTotal: Number(jaExiste.valor_total), reaproveitado: true };
+        return { id: jaExiste.id, numero: jaExiste.numero, codigo: jaExiste.codigo_publico, valorTotal: Number(jaExiste.valor_total), reaproveitado: true };
       }
     }
     throw err;

@@ -234,6 +234,21 @@
   RFS-2026-0039 exibido no admin com CPF formatado; sem erros JS.
 - Branch `develop` (não publicada; `main` e VPS sem esta mudança nem a anterior de dados opcionais).
 
+## Atualização 2026-10-20 — código público do pedido (RF-DDMM-XXX)
+- Pedido do usuário: o número sequencial por ano revela o volume de vendas ao cliente; manter a sequência só
+  dentro do app. Opções apresentadas; escolhida `RF-DDMM-XXX` (ex.: RF-2010-K7Q).
+- `migrations/007_codigo_publico.sql` (coluna única + preenchimento dos pedidos existentes pela data de criação);
+  `regras-pedido.js` (`gerarCodigoPublico`, `normalizarCodigo`, alfabeto sem ambíguos); `pedido.service.js` sorteia com
+  `crypto.randomInt` e repete em caso de colisão (savepoint); `POST /api/pedidos` passa a responder `codigo` em vez de
+  `numero`; e-mail/TXT: cliente vê só o código, equipe vê número + código; admin: busca por código/número/nome.
+- Web: confirmação "Código do pedido"; WhatsApp (cliente→loja e admin→cliente) com o código; admin → Pedidos mostra
+  número e código e tem campo de busca.
+- Validação: API `npm test` 31/31 (novos: formato/fuso/normalização, código na resposta sem número, unicidade e busca,
+  e-mail cliente sem número interno); web `npm test` 6/6; build ok; migration 007 aplicada em banco com 7 pedidos:
+  todos preenchidos, distintos, no padrão e com a data correta; E2E: confirmação RF-2010-TW7, resposta da API sem
+  `numero`, página sem "RFS-", busca "rf 2010 tw7" encontra o pedido; WhatsApp do admin com o código; sem erros JS.
+- Branch `develop` (não publicada; `main` e VPS sem esta mudança). No deploy: `atualizar.sh` aplica a migration 007.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

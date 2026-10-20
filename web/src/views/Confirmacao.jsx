@@ -7,7 +7,7 @@ export default function Confirmacao() {
   const loja = useLoja();
   const { state } = useLocation();
 
-  if (!state?.numero) {
+  if (!state?.codigo) {
     return <Navigate to="/" replace />;
   }
 
@@ -20,7 +20,7 @@ export default function Confirmacao() {
       </div>
       <h1>Pedido enviado!</h1>
       <p>
-        Número do pedido: <b>{state.numero}</b>
+        Código do pedido: <b>{state.codigo}</b>
       </p>
       <p className="sucesso-valor">{brl(state.valorTotal)}</p>
       <p>Recebemos seu pedido. Um vendedor entrará em contato em breve para combinar frete e forma de pagamento.</p>

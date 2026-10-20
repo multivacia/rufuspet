@@ -56,8 +56,10 @@ export function adminAtualizarProduto(sku, campos) {
   return requisitar(`/admin/produtos/${encodeURIComponent(sku)}`, { method: 'PATCH', body: JSON.stringify(campos) });
 }
 
-export function adminListarPedidos({ pagina = 1, porPagina = 20 } = {}) {
-  return requisitar(`/admin/pedidos?pagina=${pagina}&porPagina=${porPagina}`);
+export function adminListarPedidos({ pagina = 1, porPagina = 20, busca = '' } = {}) {
+  const params = new URLSearchParams({ pagina, porPagina });
+  if (busca) params.set('busca', busca);
+  return requisitar(`/admin/pedidos?${params}`);
 }
 
 export function adminAtualizarPedido(id, campos) {

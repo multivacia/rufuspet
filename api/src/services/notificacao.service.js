@@ -16,7 +16,8 @@ function formatarWhatsapp(digitos) {
   return d.length === 11 ? d.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3') : d.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
 }
 
-export function textoPedido(pedido, itens) {
+/** TXT/texto do pedido. Para o cliente, só o código público; para a equipe, número interno + código. */
+export function textoPedido(pedido, itens, { paraCliente = false } = {}) {
   const fuso = process.env.FUSO_HORARIO || 'America/Sao_Paulo';
   const data = new Date(pedido.criado_em).toLocaleString('pt-BR', { timeZone: fuso, dateStyle: 'short', timeStyle: 'short' });
   const sep = '='.repeat(60);
@@ -39,7 +40,7 @@ export function textoPedido(pedido, itens) {
   );
   return [
     sep,
-    `PEDIDO ${pedido.numero}`,
+    paraCliente ? `PEDIDO ${pedido.codigo_publico}` : `PEDIDO ${pedido.numero}  (código do cliente: ${pedido.codigo_publico})`,
     `Recebido em: ${data}`,
     sep,
     '',
@@ -147,7 +148,7 @@ export function htmlPedido(pedido, itens, loja, { paraCliente = false } = {}) {
 <tr><td style="padding:24px">
   ${intro}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6FA;border-radius:8px;margin-bottom:20px"><tr>
-    <td style="padding:12px 16px;font-size:13px;color:#5B6580">Pedido<br><b style="font-size:18px;color:${AZUL}">${esc(pedido.numero)}</b></td>
+    <td style="padding:12px 16px;font-size:13px;color:#5B6580">Pedido<br><b style="font-size:18px;color:${AZUL}">${esc(paraCliente ? pedido.codigo_publico : pedido.numero)}</b>${paraCliente ? '' : `<br><span style="font-size:12px">Código do cliente: <b>${esc(pedido.codigo_publico)}</b></span>`}</td>
     <td style="padding:12px 16px;font-size:13px;color:#5B6580;text-align:right">Recebido em<br><b style="font-size:14px;color:#101A33">${esc(data)}</b></td>
   </tr></table>
   <h3 style="margin:0 0 8px;font-size:15px;color:${AZUL}">Cliente</h3>
@@ -175,17 +176,17 @@ function montarEmail(notificacao, pedido, itens, texto, loja) {
   if (notificacao.tipo === 'interno') {
     return {
       replyTo: pedido.contato_email || undefined,
-      subject: `Novo pedido ${pedido.numero} — ${pedido.nome_fantasia || pedido.razao_social || pedido.contato_nome} (${brl(pedido.valor_total)})`,
+      subject: `Novo pedido ${pedido.numero} (${pedido.codigo_publico}) — ${pedido.nome_fantasia || pedido.razao_social || pedido.contato_nome} (${brl(pedido.valor_total)})`,
       text: `Novo pedido recebido pelo site.\n\n${texto}`,
       html: htmlPedido(pedido, itens, loja),
     };
   }
   return {
     replyTo: loja.emailContato || undefined,
-    subject: `${loja.nome}: recebemos seu pedido ${pedido.numero}`,
+    subject: `${loja.nome}: recebemos seu pedido ${pedido.codigo_publico}`,
     text:
       `Olá, ${pedido.contato_nome}!\n\nRecebemos seu pedido. Em breve entraremos em contato para combinar ` +
-      `frete e forma de pagamento.\n\n${texto}\n${loja.nome}\n`,
+      `frete e forma de pagamento.\n\n${textoPedido(pedido, itens, { paraCliente: true })}\n${loja.nome}\n`,
     html: htmlPedido(pedido, itens, loja, { paraCliente: true }),
   };
 }

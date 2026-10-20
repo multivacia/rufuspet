@@ -15,6 +15,9 @@ export const UFS = [
 ];
 
 export const QUANTIDADE_MAXIMA = 9999;
+
+// Código público do pedido (RF-DDMM-XXX). Mesmo alfabeto da migration 007: sem 0/O, 1/I/L, 2/Z, 5/S.
+export const ALFABETO_CODIGO = 'ABCDEFGHJKMNPQRTUVWXY346789';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function somenteDigitos(valor) {
@@ -150,4 +153,21 @@ export function validarItens(itens) {
 export function calcularTotal(linhas) {
   const centavos = linhas.reduce((soma, l) => soma + Math.round(Number(l.precoUnitario) * 100) * l.quantidade, 0);
   return centavos / 100;
+}
+
+/** Gera RF-DDMM-XXX com a data no fuso informado. `sortear(n)` devolve inteiro em [0, n). */
+export function gerarCodigoPublico(data, sortear, fuso = 'America/Sao_Paulo') {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('pt-BR', { timeZone: fuso, day: '2-digit', month: '2-digit' })
+      .formatToParts(data)
+      .map((p) => [p.type, p.value]),
+  );
+  let sufixo = '';
+  for (let i = 0; i < 3; i++) sufixo += ALFABETO_CODIGO[sortear(ALFABETO_CODIGO.length)];
+  return `RF-${partes.day}${partes.month}-${sufixo}`;
+}
+
+/** "rf 2010 k7q", "RF2010K7Q" → "RF2010K7Q" (para comparar ignorando hífen, espaço e caixa). */
+export function normalizarCodigo(valor) {
+  return String(valor ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
