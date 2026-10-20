@@ -184,6 +184,15 @@
 - Validação: medição com Playwright antes/depois do clique em 390, 700, 860, 1024, 1180, 1280 e 1440px: altura
   43px, sem transbordo; na mesma linha da quantidade exceto em 1024px (botão abaixo, largura total). Build ok.
 
+## Atualização 2026-10-20 — publicação no VPS (WhatsApp + pedido mínimo)
+- PR #3 (`develop` → `main`) mesclado: `44edfd2` (fast-forward possível, sem divergência).
+- VPS (executado pelo usuário): `deploy/atualizar.sh` → backup `~/backups/rufuspet/rufus-20261019-232452.sql.gz`,
+  `main` 982b6ed → 44edfd2 (fast-forward), `aplicada: 006_pedido_minimo.sql`, build ok, `rufus-api` reiniciado,
+  `/health` `{"ok":true,"db":true}`; `sgp-api` seguiu online.
+- Observação: o VPS indica "System restart required" (atualizações do Ubuntu). Reiniciar afeta também o SGP;
+  antes, confirmar que o PM2 sobe sozinho no boot (`systemctl is-enabled pm2-deploy`).
+- Pendente do usuário: preencher WhatsApp e pedido mínimo no admin → Loja de produção e testar um pedido.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
