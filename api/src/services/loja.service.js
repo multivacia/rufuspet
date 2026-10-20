@@ -41,7 +41,25 @@ function paraApi(row, { incluirPrivados = false } = {}) {
     dados[campoApi] = row?.[coluna] ?? '';
   }
   if (!dados.nome) dados.nome = 'Rufus';
+  dados.pedidoMinimo = Number(row?.pedido_minimo ?? 0);
   return dados;
+}
+
+/** Valor mínimo do pedido em reais (0 = sem mínimo). */
+export async function pedidoMinimo(client = pool) {
+  const { rows } = await client.query('SELECT pedido_minimo FROM loja_config WHERE id = 1');
+  return Number(rows[0]?.pedido_minimo ?? 0);
+}
+
+/** Aceita 150, "150", "150,00" ou "1.500,50"; devolve reais com 2 casas, ou lança ErroLoja. */
+function lerValorReais(bruto, campo) {
+  let texto = typeof bruto === 'number' ? String(bruto) : String(bruto ?? '').trim();
+  if (texto.includes(',')) texto = texto.replace(/\./g, '').replace(',', '.');
+  if (texto === '') texto = '0';
+  if (!/^\d+(\.\d{1,2})?$/.test(texto)) throw new ErroLoja('Valor inválido (ex.: 150,00)', campo);
+  const valor = Number(texto);
+  if (valor > 1000000) throw new ErroLoja('Valor muito alto', campo);
+  return valor.toFixed(2);
 }
 
 export async function buscarLoja({ incluirPrivados = false } = {}) {
@@ -81,6 +99,10 @@ export async function atualizarLoja(body) {
     }
     valores.push(gravar);
     sets.push(`${coluna} = $${valores.length}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(body ?? {}, 'pedidoMinimo')) {
+    valores.push(lerValorReais(body.pedidoMinimo, 'pedidoMinimo'));
+    sets.push(`pedido_minimo = $${valores.length}`);
   }
   if (sets.length === 0) throw new ErroLoja('Nenhum campo informado');
   const { rows } = await pool.query(

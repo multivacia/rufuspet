@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useProdutos } from '../lib/produtos.jsx';
+import { useLoja } from '../lib/dadosLoja.jsx';
+import { brl } from '../lib/formato.js';
 import CardProduto from '../components/CardProduto.jsx';
 import { Pata } from '../components/Logo.jsx';
 
@@ -8,6 +10,7 @@ const VANTAGENS = ['Pronta entrega', 'Leve e portátil', 'Cores disponíveis', '
 
 export default function Catalogo() {
   const { produtos, carregando, erro, recarregar } = useProdutos();
+  const { pedidoMinimo } = useLoja();
   const { hash } = useLocation();
 
   // Link "/#produtos" vindo de outra página: rola até a seção depois que os produtos carregam.
@@ -26,6 +29,11 @@ export default function Catalogo() {
               Escolha os produtos e as quantidades, envie o pedido e um vendedor entra em contato para combinar frete e
               pagamento.
             </p>
+            {pedidoMinimo > 0 && (
+              <p className="pedido-minimo">
+                Pedido mínimo: <b>{brl(pedidoMinimo)}</b>
+              </p>
+            )}
             <a href="#produtos" className="botao botao-grande">
               Ver produtos
             </a>
@@ -66,7 +74,10 @@ export default function Catalogo() {
             ))}
           </div>
         )}
-        <p className="nota">Preços por unidade. Valores confirmados pelo vendedor no fechamento do pedido.</p>
+        <p className="nota">
+          Preços por unidade.{pedidoMinimo > 0 && <> Pedido mínimo de {brl(pedidoMinimo)}.</>} Valores confirmados pelo
+          vendedor no fechamento do pedido.
+        </p>
       </section>
     </>
   );

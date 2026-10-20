@@ -7,7 +7,7 @@ import {
   validarItens,
   validarObservacoes,
 } from './regras-pedido.js';
-import { destinatariosInternos } from './loja.service.js';
+import { destinatariosInternos, pedidoMinimo } from './loja.service.js';
 
 export { ErroPedido };
 
@@ -76,6 +76,16 @@ export async function criarPedido({ idempotencyKey, cliente, contato, itens, obs
     return { ...item, produto, precoUnitario: produto.preco_unitario };
   });
   const valorTotal = calcularTotal(linhas);
+
+  const minimo = await pedidoMinimo();
+  if (valorTotal < minimo) {
+    const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    throw new ErroPedido(
+      422,
+      'PEDIDO_MINIMO',
+      `O pedido mínimo é de ${fmt(minimo)}. Faltam ${fmt(Math.round((minimo - valorTotal) * 100) / 100)}.`,
+    );
+  }
 
   const client = await pool.connect();
   try {

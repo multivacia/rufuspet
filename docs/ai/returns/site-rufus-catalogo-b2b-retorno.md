@@ -162,6 +162,20 @@
   `wa.me/5511987654321` (cliente) com mensagens corretas; sem erros JS.
 - Envio automático de WhatsApp (API oficial) continua não implementado; notificações `whatsapp` seguem `pendente`.
 
+## Atualização 2026-10-20 — pedido mínimo
+- Pedido do usuário: mensagem de valor do pedido mínimo, parametrizado no /admin junto com os dados da loja.
+- Decisão técnica (informada ao usuário): além da mensagem, o mínimo é **validado na API** (backend é a fonte da
+  regra) e o envio fica desabilitado no site; `0` = sem mínimo.
+- `migrations/006_pedido_minimo.sql`; `loja.service.js` (`pedidoMinimo` público; aceita 150, "150,00", "1.250,50";
+  recusa negativo, texto, 3 casas, > 1.000.000); `pedido.service.js` → 422 `PEDIDO_MINIMO` com quanto falta.
+- Web: mínimo no hero e na nota do catálogo; barra do pedido mostra quanto falta; página do pedido com aviso
+  (amarelo/verde) e botão desabilitado com "Faltam R$ X"; campo "Pedido mínimo (R$)" na tela Loja.
+- Validação: API `npm test` 20/20 (novo teste do mínimo); web `npm test` 4/4; build ok; E2E Playwright: valor
+  inválido recusado no admin; mínimo R$ 150,00 exibido; 1 un. (R$ 11,90) bloqueado com "Faltam R$ 138,10";
+  13 un. (R$ 154,70) liberado e enviado; POST direto na API abaixo do mínimo → 422. Sem erros JS.
+- Observação cosmética (não alterada): o texto "Adicionado ✓" quebra linha no botão do card em telas largas.
+- Branch `develop` (não publicada no VPS; `main` inalterado).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

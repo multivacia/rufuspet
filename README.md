@@ -34,7 +34,8 @@ npm run dev   # http://localhost:5173
   do `.env`, se vazio), quando há SMTP;
   o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
 - **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
-  e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.).
+  e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.), e-mails que recebem
+  os pedidos e **pedido mínimo** (0 = sem mínimo; pedidos abaixo são recusados pela API).
 - **WhatsApp (links wa.me, sem API):** na confirmação, o cliente pode enviar o pedido pelo WhatsApp da loja
   (número do admin → Loja), com itens e total já escritos; no admin → Pedidos, "Falar no WhatsApp" abre conversa
   com o cliente. Nada é enviado automaticamente: a pessoa confirma no próprio WhatsApp.

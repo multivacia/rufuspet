@@ -40,7 +40,7 @@ after(async () => {
 beforeEach(async () => {
   if (!urlTeste) return;
   await pool.query('TRUNCATE pedidos, admin_usuarios RESTART IDENTITY CASCADE');
-  await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = ''");
+  await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = '', pedido_minimo = 0");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
@@ -181,6 +181,7 @@ async function loginAdmin() {
 test('dados da loja: público lê, admin altera e valida', opcoes, async () => {
   assert.deepEqual(await (await fetch(`${base}/api/loja`)).json(), {
     nome: 'Rufus', razaoSocial: '', cnpj: '', telefone: '', whatsapp: '', emailContato: '', endereco: '', horario: '', instagram: '',
+    pedidoMinimo: 0,
   });
   const put = (corpo, cookie) =>
     fetch(`${base}/api/admin/loja`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(corpo) });
@@ -226,4 +227,33 @@ test('e-mails internos: editáveis no admin, privados e usados no aviso do pedid
   await post('/api/pedidos', pedidoValido());
   ({ rows } = await pool.query("SELECT destino FROM notificacoes WHERE tipo = 'interno' ORDER BY id"));
   assert.deepEqual(rows.map((r) => r.destino), ['vendas@rufus.com', 'dono@rufus.com']);
+});
+
+test('pedido mínimo: configurável no admin, público no site e validado no pedido', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const put = (corpo) =>
+    fetch(`${base}/api/admin/loja`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(corpo) });
+
+  for (const invalido of ['-1', 'abc', '10,555', 2000000]) {
+    const r = await put({ pedidoMinimo: invalido });
+    assert.equal(r.status, 400, String(invalido));
+    assert.equal((await r.json()).erro.campo, 'pedidoMinimo');
+  }
+  assert.equal((await (await put({ pedidoMinimo: '1.250,5' })).json()).pedidoMinimo, 1250.5);
+  assert.equal((await (await put({ pedidoMinimo: 150 })).json()).pedidoMinimo, 150);
+  assert.equal((await (await fetch(`${base}/api/loja`)).json()).pedidoMinimo, 150);
+
+  // 2 × 11,90 = 23,80 < 150 → recusado com quanto falta
+  const abaixo = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 2 }] }));
+  assert.equal(abaixo.status, 422);
+  assert.equal(abaixo.corpo.erro.codigo, 'PEDIDO_MINIMO');
+  assert.match(abaixo.corpo.erro.mensagem.replace(/\u00a0/g, ' '), /mínimo é de R\$ 150,00\. Faltam R\$ 126,20/);
+
+  // 239,50 ≥ 150 → aceito; mínimo exato também
+  assert.equal((await post('/api/pedidos', pedidoValido())).status, 201);
+  await put({ pedidoMinimo: '239,50' });
+  assert.equal((await post('/api/pedidos', pedidoValido())).status, 201);
+
+  await put({ pedidoMinimo: 0 }); // 0 = sem mínimo
+  assert.equal((await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 1 }] }))).status, 201);
 });

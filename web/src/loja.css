@@ -40,6 +40,12 @@
 .loja .hero-foto { display: flex; justify-content: center; }
 .loja .hero-foto img { width: min(100%, 380px); height: auto; border-radius: 24px; background: #fff; box-shadow: 0 12px 40px rgba(12,31,82,.15); }
 
+.loja .hero .pedido-minimo { margin: -8px 0 20px; color: var(--navy-deep); font-size: .95rem; }
+.loja .barra-falta { font-size: .8rem; color: var(--lime); }
+.loja .aviso-minimo { margin: 4px 0 12px; padding: 10px 14px; border-radius: 10px; background: #FFF6E0; color: #7A5200; font-size: .92rem; }
+.loja .aviso-minimo.ok { background: #EAF6E0; color: var(--lime-deep); }
+.loja .botao:disabled:not([aria-busy]) { cursor: not-allowed; }
+
 /* Vantagens */
 .loja .vantagens { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding-top: 24px; padding-bottom: 8px; }
 .loja .vantagens li { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-weight: 700; color: var(--navy-deep); }
