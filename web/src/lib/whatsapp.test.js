@@ -36,6 +36,12 @@ test('mensagem do cliente para a loja traz número, itens e total', () => {
   assert.match(m, /\*Total: R\$ 113,30\*/);
 });
 
+test('sem empresa, a mensagem identifica pelo nome', () => {
+  const m = mensagemPedidoParaLoja({ numero: 'RFS-1', valorTotal: 10, nome: 'João da Pet' });
+  assert.match(m, /Nome: João da Pet/);
+  assert.doesNotMatch(m, /Empresa:/);
+});
+
 test('mensagem da loja para o cliente usa o primeiro nome', () => {
   const m = semNbsp(mensagemLojaParaCliente({ contato_nome: 'Maria Silva', numero: 'RFS-2026-0001', valor_total: '23.80' }, 'Rufus'));
   assert.equal(m, 'Olá, Maria! Aqui é da Rufus. Recebemos o pedido *RFS-2026-0001* (R$ 23,80) e gostaríamos de combinar frete e pagamento.');

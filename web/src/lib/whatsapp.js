@@ -18,11 +18,11 @@ export function linkWhatsApp(numero, texto) {
 }
 
 /** Mensagem do cliente para a loja, enviada a partir da tela de confirmação. */
-export function mensagemPedidoParaLoja({ numero, valorTotal, itens = [], empresa }) {
+export function mensagemPedidoParaLoja({ numero, valorTotal, itens = [], empresa, nome }) {
   const linhas = itens.map((i) => `• ${i.quantidade}x ${i.nome}${i.cor ? ` (${i.cor})` : ''} — ${brl(i.precoUnitario * i.quantidade)}`);
   return [
     `Olá! Acabei de fazer o pedido *${numero}* pelo site.`,
-    empresa ? `Empresa: ${empresa}` : null,
+    empresa ? `Empresa: ${empresa}` : nome ? `Nome: ${nome}` : null,
     linhas.length ? '' : null,
     ...linhas,
     '',

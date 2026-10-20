@@ -4,6 +4,8 @@ import {
   ErroPedido,
   calcularTotal,
   cnpjValido,
+  cpfValido,
+  formatarDocumento,
   validarCliente,
   validarContato,
   validarItens,
@@ -31,6 +33,24 @@ test('CNPJ: aceita válido com e sem máscara, recusa dígito errado, curto e re
   assert.equal(cnpjValido('00000000000000'), false);
 });
 
+test('CPF: aceita válido com e sem máscara, recusa dígito errado e repetido', () => {
+  assert.equal(cpfValido('529.982.247-25'), true);
+  assert.equal(cpfValido('52998224725'), true);
+  assert.equal(cpfValido('529.982.247-26'), false);
+  assert.equal(cpfValido('111.111.111-11'), false);
+  assert.equal(cpfValido('5299822472'), false);
+});
+
+test('documento do cliente aceita CPF ou CNPJ e formata conforme o tipo', () => {
+  assert.equal(validarCliente({ cnpj: '529.982.247-25' }).cnpj, '52998224725');
+  assert.equal(validarCliente({ cnpj: '11.222.333/0001-81' }).cnpj, '11222333000181');
+  assert.equal(campoDoErro(() => validarCliente({ cnpj: '529.982.247-26' })), 'cliente.cnpj');
+  assert.equal(campoDoErro(() => validarCliente({ cnpj: '123456789012' })), 'cliente.cnpj');
+  assert.equal(formatarDocumento('52998224725'), '529.982.247-25');
+  assert.equal(formatarDocumento('11222333000181'), '11.222.333/0001-81');
+  assert.equal(formatarDocumento(''), '');
+});
+
 test('cliente válido é normalizado (CNPJ só dígitos, UF maiúscula)', () => {
   assert.deepEqual(validarCliente(cliente), {
     razaoSocial: 'Pet Shop Exemplo Ltda', nomeFantasia: '', cnpj: '11222333000181', cidade: 'Campinas', uf: 'SP',
@@ -40,12 +60,29 @@ test('cliente válido é normalizado (CNPJ só dígitos, UF maiúscula)', () => 
 test('cliente inválido aponta o campo', () => {
   assert.equal(campoDoErro(() => validarCliente({ ...cliente, cnpj: '123' })), 'cliente.cnpj');
   assert.equal(campoDoErro(() => validarCliente({ ...cliente, uf: 'XX' })), 'cliente.uf');
-  assert.equal(campoDoErro(() => validarCliente({ ...cliente, razaoSocial: ' ' })), 'cliente.razaoSocial');
+  assert.equal(campoDoErro(() => validarCliente({ ...cliente, razaoSocial: 'x'.repeat(151) })), 'cliente.razaoSocial');
   assert.equal(campoDoErro(() => validarCliente({ ...cliente, cidade: ['x'] })), 'cliente.cidade');
+});
+
+test('dados da empresa são opcionais', () => {
+  const vazio = { razaoSocial: '', nomeFantasia: '', cnpj: '', cidade: '', uf: '' };
+  assert.deepEqual(validarCliente(undefined), vazio);
+  assert.deepEqual(validarCliente({}), vazio);
+  assert.deepEqual(validarCliente({ razaoSocial: '  ', cnpj: '', uf: '' }), vazio);
+  assert.equal(validarCliente({ cidade: 'Campinas' }).cidade, 'Campinas');
 });
 
 test('quebra de linha em campo de uma linha vira espaço', () => {
   assert.equal(validarCliente({ ...cliente, razaoSocial: 'Pet\r\nBcc: x@y.com' }).razaoSocial, 'Pet Bcc: x@y.com');
+});
+
+test('contato: basta nome e um meio de contato; canal se ajusta ao que foi informado', () => {
+  assert.deepEqual(validarContato({ nome: 'Maria', whatsapp: '11987654321', canalPreferido: 'email' }), {
+    nome: 'Maria', email: '', whatsapp: '11987654321', canalPreferido: 'whatsapp',
+  });
+  assert.equal(validarContato({ nome: 'Maria', email: 'm@x.com', canalPreferido: 'whatsapp' }).canalPreferido, 'email');
+  assert.equal(campoDoErro(() => validarContato({ nome: 'Maria', canalPreferido: 'whatsapp' })), 'contato.whatsapp');
+  assert.equal(campoDoErro(() => validarContato({ nome: 'Ma', whatsapp: '11987654321', canalPreferido: 'whatsapp' })), 'contato.nome');
 });
 
 test('contato: valida e-mail, WhatsApp e canal', () => {

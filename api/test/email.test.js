@@ -31,3 +31,18 @@ test('versão do cliente tem saudação e título de confirmação', () => {
 test('texto puro continua disponível como alternativa', () => {
   assert.ok(semNbsp(textoPedido(pedido, itens)).includes('TOTAL (14 unidades): R$ 239,50'));
 });
+
+test('e-mail sem dados da empresa mostra traço e usa o nome do contato no assunto', () => {
+  const p = { ...pedido, razao_social: '', cnpj: '', cidade: '', uf: '', contato_email: '' };
+  const html = htmlPedido(p, itens, loja);
+  assert.ok(!html.includes('undefined') && !html.includes('/</b>'), 'campos vazios não podem aparecer quebrados');
+  assert.ok(textoPedido(p, itens).includes('CPF/CNPJ:            —'));
+});
+
+test('pessoa física: CPF formatado e rótulos Nome/Razão social e CPF/CNPJ', () => {
+  const p = { ...pedido, razao_social: 'Maria Silva', cnpj: '52998224725' };
+  const txt = textoPedido(p, itens);
+  assert.ok(txt.includes('Nome/Razão social:   Maria Silva'));
+  assert.ok(txt.includes('CPF/CNPJ:            529.982.247-25'));
+  assert.ok(htmlPedido(p, itens, loja).includes('529.982.247-25'));
+});

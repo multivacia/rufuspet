@@ -6,8 +6,10 @@ import { linkWhatsApp, mensagemLojaParaCliente } from '../../lib/whatsapp.js';
 
 const STATUS_OPCOES = ['novo', 'confirmado', 'faturado', 'cancelado'];
 
-function formatarCnpj(cnpj) {
-  return String(cnpj ?? '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+function formatarDocumento(doc) {
+  const d = String(doc ?? '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
 
 function formatarData(iso) {
@@ -64,7 +66,7 @@ export default function Pedidos() {
               <tr>
                 <th />
                 <th>Número</th>
-                <th>Empresa</th>
+                <th>Cliente (nome/razão social)</th>
                 <th>Contato</th>
                 <th>Total</th>
                 <th>Status</th>
@@ -86,17 +88,23 @@ export default function Pedidos() {
                     </td>
                     <td className="mono">{pedido.numero}</td>
                     <td>
-                      {pedido.nome_fantasia || pedido.razao_social}
-                      <br />
-                      <span className="pdesc">
-                        {formatarCnpj(pedido.cnpj)} · {pedido.cidade}/{pedido.uf}
-                      </span>
+                      {pedido.nome_fantasia || pedido.razao_social || <span className="pdesc">Não informada</span>}
+                      {(pedido.cnpj || pedido.cidade || pedido.uf) && (
+                        <>
+                          <br />
+                          <span className="pdesc">
+                            {[formatarDocumento(pedido.cnpj), [pedido.cidade, pedido.uf].filter(Boolean).join('/')]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td>
                       {pedido.contato_nome}
                       <br />
                       <span className="pdesc">
-                        {pedido.contato_email} · {pedido.contato_whatsapp} · prefere{' '}
+                        {[pedido.contato_email, pedido.contato_whatsapp].filter(Boolean).join(' · ')} · prefere{' '}
                         {pedido.canal_preferido === 'email' ? 'e-mail' : 'WhatsApp'}
                       </span>
                       {linkWhatsApp(pedido.contato_whatsapp) && (
