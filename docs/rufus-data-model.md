@@ -258,3 +258,13 @@ preenchidos. Se o `canalPreferido` escolhido não foi informado, a API usa o out
 **Pessoa física (2026-10-20):** `pedidos.cnpj` guarda **CPF (11 dígitos) ou CNPJ (14 dígitos)**, só dígitos, validado
 pelo dígito verificador correspondente; `pedidos.razao_social` guarda nome (PF) ou razão social (PJ). Na API o
 campo continua `cliente.cnpj` / `cliente.razaoSocial`; nas telas, "CPF / CNPJ" e "Nome / Razão social".
+
+## Migration 007 — código público do pedido (2026-10-20)
+
+`pedidos.codigo_publico TEXT NOT NULL UNIQUE`, formato **`RF-DDMM-XXX`**: dia/mês do pedido (horário de Brasília)
++ 3 caracteres do alfabeto `ABCDEFGHJKMNPQRTUVWXY346789` (sem 0/O, 1/I/L, 2/Z, 5/S). É o identificador mostrado
+ao **cliente** (confirmação, e-mail de confirmação, WhatsApp); `pedidos.numero` (`RFS-<ano>-<seq>`) continua
+sequencial e **interno** (admin, aviso interno, TXT). `POST /api/pedidos` responde `{ codigo, valorTotal }` — o
+número sequencial não vai ao navegador. A migration preenche os pedidos existentes com a data de `criado_em`.
+Colisão ao criar → novo sorteio (savepoint). `GET /api/admin/pedidos?busca=` procura por código (ignora hífen,
+espaço e caixa), número, nome do contato, razão social ou nome fantasia.

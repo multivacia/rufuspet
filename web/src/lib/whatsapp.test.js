@@ -21,7 +21,7 @@ const semNbsp = (s) => s.replace(/ /g, ' ');
 test('mensagem do cliente para a loja traz número, itens e total', () => {
   const m = semNbsp(
     mensagemPedidoParaLoja({
-      numero: 'RFS-2026-0001',
+      codigo: 'RF-2010-K7Q',
       valorTotal: 113.3,
       empresa: 'Pet Feliz',
       itens: [
@@ -30,19 +30,19 @@ test('mensagem do cliente para a loja traz número, itens e total', () => {
       ],
     }),
   );
-  assert.match(m, /pedido \*RFS-2026-0001\*/);
+  assert.match(m, /pedido \*RF-2010-K7Q\*/);
   assert.match(m, /Empresa: Pet Feliz/);
   assert.match(m, /• 6x Pote dobrável \(Azul\) — R\$ 101,40/);
   assert.match(m, /\*Total: R\$ 113,30\*/);
 });
 
 test('sem empresa, a mensagem identifica pelo nome', () => {
-  const m = mensagemPedidoParaLoja({ numero: 'RFS-1', valorTotal: 10, nome: 'João da Pet' });
+  const m = mensagemPedidoParaLoja({ codigo: 'RF-2010-K7Q', valorTotal: 10, nome: 'João da Pet' });
   assert.match(m, /Nome: João da Pet/);
   assert.doesNotMatch(m, /Empresa:/);
 });
 
 test('mensagem da loja para o cliente usa o primeiro nome', () => {
-  const m = semNbsp(mensagemLojaParaCliente({ contato_nome: 'Maria Silva', numero: 'RFS-2026-0001', valor_total: '23.80' }, 'Rufus'));
-  assert.equal(m, 'Olá, Maria! Aqui é da Rufus. Recebemos o pedido *RFS-2026-0001* (R$ 23,80) e gostaríamos de combinar frete e pagamento.');
+  const m = semNbsp(mensagemLojaParaCliente({ contato_nome: 'Maria Silva', numero: 'RFS-2026-0001', codigo_publico: 'RF-2010-K7Q', valor_total: '23.80' }, 'Rufus'));
+  assert.equal(m, 'Olá, Maria! Aqui é da Rufus. Recebemos o pedido *RF-2010-K7Q* (R$ 23,80) e gostaríamos de combinar frete e pagamento.');
 });

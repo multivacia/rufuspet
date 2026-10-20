@@ -18,10 +18,10 @@ export function linkWhatsApp(numero, texto) {
 }
 
 /** Mensagem do cliente para a loja, enviada a partir da tela de confirmação. */
-export function mensagemPedidoParaLoja({ numero, valorTotal, itens = [], empresa, nome }) {
+export function mensagemPedidoParaLoja({ codigo, valorTotal, itens = [], empresa, nome }) {
   const linhas = itens.map((i) => `• ${i.quantidade}x ${i.nome}${i.cor ? ` (${i.cor})` : ''} — ${brl(i.precoUnitario * i.quantidade)}`);
   return [
-    `Olá! Acabei de fazer o pedido *${numero}* pelo site.`,
+    `Olá! Acabei de fazer o pedido *${codigo}* pelo site.`,
     empresa ? `Empresa: ${empresa}` : nome ? `Nome: ${nome}` : null,
     linhas.length ? '' : null,
     ...linhas,
@@ -34,11 +34,11 @@ export function mensagemPedidoParaLoja({ numero, valorTotal, itens = [], empresa
     .join('\n');
 }
 
-/** Mensagem da loja para o cliente, a partir do admin. */
+/** Mensagem da loja para o cliente, a partir do admin. Usa o código público (o número interno não vai ao cliente). */
 export function mensagemLojaParaCliente(pedido, nomeLoja) {
   const primeiroNome = String(pedido.contato_nome ?? '').trim().split(/\s+/)[0] || '';
   return (
     `Olá${primeiroNome ? `, ${primeiroNome}` : ''}! Aqui é da ${nomeLoja}. ` +
-    `Recebemos o pedido *${pedido.numero}* (${brl(pedido.valor_total)}) e gostaríamos de combinar frete e pagamento.`
+    `Recebemos o pedido *${pedido.codigo_publico}* (${brl(pedido.valor_total)}) e gostaríamos de combinar frete e pagamento.`
   );
 }

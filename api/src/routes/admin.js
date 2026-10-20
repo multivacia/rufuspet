@@ -4,6 +4,7 @@ import { autenticar } from '../services/admin.service.js';
 import { autenticarAdmin, COOKIE_ADMIN } from '../middleware/auth.js';
 import { adminLoginRateLimit } from '../middleware/ratelimit.js';
 import { ErroLoja, atualizarLoja, buscarLoja } from '../services/loja.service.js';
+import { normalizarCodigo } from '../services/regras-pedido.js';
 
 export const adminRouter = Router();
 
@@ -100,11 +101,25 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
     const porPagina = Math.min(50, Math.max(1, parseInt(req.query.porPagina, 10) || 20));
     const offset = (pagina - 1) * porPagina;
 
+    // Busca por código do cliente (ignora hífen/espaço/caixa), número interno, nome ou razão social.
+    const busca = String(req.query.busca ?? '').trim().slice(0, 100);
+    const filtro = busca
+      ? `WHERE regexp_replace(codigo_publico, '[^A-Z0-9]', '', 'g') LIKE '%' || $3 || '%'
+            OR numero ILIKE '%' || $4 || '%'
+            OR contato_nome ILIKE '%' || $4 || '%'
+            OR razao_social ILIKE '%' || $4 || '%'
+            OR nome_fantasia ILIKE '%' || $4 || '%'`
+      : '';
+    const paramsBusca = busca ? [normalizarCodigo(busca) || '#', busca.replace(/[%_\\]/g, '\\$&')] : [];
+
     const { rows: pedidos } = await pool.query(
-      'SELECT * FROM pedidos ORDER BY criado_em DESC LIMIT $1 OFFSET $2',
-      [porPagina, offset],
+      `SELECT * FROM pedidos ${filtro} ORDER BY criado_em DESC LIMIT $1 OFFSET $2`,
+      [porPagina, offset, ...paramsBusca],
     );
-    const { rows: totalRows } = await pool.query('SELECT count(*)::int AS total FROM pedidos');
+    const { rows: totalRows } = await pool.query(
+      `SELECT count(*)::int AS total FROM pedidos ${filtro.replaceAll('$3', '$1').replaceAll('$4', '$2')}`,
+      paramsBusca,
+    );
 
     const ids = pedidos.map((p) => p.id);
     const { rows: itens } = ids.length

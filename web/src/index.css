@@ -64,3 +64,7 @@ a{color:inherit}
 
 .link-whatsapp{display:inline-block;margin-top:4px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#128C4A;text-decoration:none;border:1px solid #25D366;border-radius:3px;padding:3px 8px}
 .link-whatsapp:hover{background:#E8F9EF}
+.busca-pedidos{display:flex;gap:8px;align-items:center;margin-bottom:16px;max-width:620px}
+.busca-pedidos input{flex:1;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:3px;font:inherit;font-size:14px}
+.busca-pedidos .cta-primario{height:38px}
+.codigo-cliente{display:inline-block;margin-top:3px;font-size:11px;color:var(--lime-deep);border:1px solid var(--lime);border-radius:3px;padding:1px 6px}

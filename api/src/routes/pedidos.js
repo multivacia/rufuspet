@@ -9,12 +9,13 @@ pedidosRouter.post('/pedidos', pedidosRateLimit, async (req, res, next) => {
   try {
     // Campo invisível do formulário: se veio preenchido, é robô. Finge sucesso e não grava nada.
     if (req.body?.website) {
-      return res.status(201).json({ numero: 'RFS-0000-0000', valorTotal: 0 });
+      return res.status(201).json({ codigo: 'RF-0000-AAA', valorTotal: 0 });
     }
 
     const resultado = await criarPedido(req.body ?? {});
+    // Só o código público vai para o navegador; o número sequencial (numero) é interno.
     res.status(resultado.reaproveitado ? 200 : 201).json({
-      numero: resultado.numero,
+      codigo: resultado.codigo,
       valorTotal: resultado.valorTotal,
     });
 

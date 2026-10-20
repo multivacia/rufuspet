@@ -20,15 +20,17 @@ export default function Pedidos() {
   const loja = useLoja();
   const [dados, setDados] = useState(null);
   const [pagina, setPagina] = useState(1);
+  const [busca, setBusca] = useState('');
+  const [buscaAplicada, setBuscaAplicada] = useState('');
   const [expandido, setExpandido] = useState(null);
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState({});
 
   useEffect(() => {
-    adminListarPedidos({ pagina })
+    adminListarPedidos({ pagina, busca: buscaAplicada })
       .then(setDados)
       .catch((err) => setErro(err.message));
-  }, [pagina]);
+  }, [pagina, buscaAplicada]);
 
   async function aplicarPatch(pedido, campos) {
     setSalvando((atual) => ({ ...atual, [pedido.id]: true }));
@@ -55,9 +57,45 @@ export default function Pedidos() {
     <>
       <h1 className="sec-title">Pedidos</h1>
 
+      <form
+        className="busca-pedidos"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setPagina(1);
+          setBuscaAplicada(busca.trim());
+        }}
+      >
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Código do cliente (RF-2010-K7Q), número ou nome"
+          aria-label="Buscar pedido"
+        />
+        <button type="submit" className="cta-primario">
+          Buscar
+        </button>
+        {buscaAplicada && (
+          <button
+            type="button"
+            className="expandir"
+            style={{ width: 'auto', padding: '0 10px', height: 38 }}
+            onClick={() => {
+              setBusca('');
+              setPagina(1);
+              setBuscaAplicada('');
+            }}
+          >
+            limpar
+          </button>
+        )}
+      </form>
+
       {erro && <p className="alerta-erro">{erro}</p>}
 
-      {dados.pedidos.length === 0 && <p className="vazio">Nenhum pedido ainda.</p>}
+      {dados.pedidos.length === 0 && (
+        <p className="vazio">{buscaAplicada ? `Nenhum pedido encontrado para "${buscaAplicada}".` : 'Nenhum pedido ainda.'}</p>
+      )}
 
       {dados.pedidos.length > 0 && (
         <div style={{ overflowX: 'auto' }}>
@@ -65,7 +103,7 @@ export default function Pedidos() {
             <thead>
               <tr>
                 <th />
-                <th>Número</th>
+                <th>Número / código do cliente</th>
                 <th>Cliente (nome/razão social)</th>
                 <th>Contato</th>
                 <th>Total</th>
@@ -86,7 +124,13 @@ export default function Pedidos() {
                         {expandido === pedido.id ? '−' : '+'}
                       </button>
                     </td>
-                    <td className="mono">{pedido.numero}</td>
+                    <td className="mono">
+                      {pedido.numero}
+                      <br />
+                      <span className="codigo-cliente" title="Código mostrado ao cliente">
+                        {pedido.codigo_publico}
+                      </span>
+                    </td>
                     <td>
                       {pedido.nome_fantasia || pedido.razao_social || <span className="pdesc">Não informada</span>}
                       {(pedido.cnpj || pedido.cidade || pedido.uf) && (

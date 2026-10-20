@@ -47,6 +47,9 @@ beforeEach(async () => {
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
 
+// RF-DDMM-XXX, alfabeto sem 0/O, 1/I/L, 2/Z, 5/S.
+const CODIGO_REGEX = /^RF-\d{4}-[ABCDEFGHJKMNPQRTUVWXY346789]{3}$/;
+
 const opcoes = { skip: urlTeste ? false : 'defina DATABASE_URL_TESTE para rodar' };
 
 function pedidoValido(extra = {}) {
@@ -95,7 +98,8 @@ test('GET /api/produtos agrupa variantes, traz preço unitário e omite inativos
 test('POST /api/pedidos grava pedido com preço do banco, gera número e TXT', opcoes, async () => {
   const r = await post('/api/pedidos', pedidoValido());
   assert.equal(r.status, 201);
-  assert.match(r.corpo.numero, /^RFS-\d{4}-0001$/);
+  assert.match(r.corpo.codigo, CODIGO_REGEX);
+  assert.ok(!('numero' in r.corpo), 'o número sequencial não pode ir para o navegador');
   assert.equal(r.corpo.valorTotal, 239.5);
 
   const { rows: [pedido] } = await pool.query('SELECT * FROM pedidos');
@@ -108,7 +112,10 @@ test('POST /api/pedidos grava pedido com preço do banco, gera número e TXT', o
   const { rows: notif } = await pool.query('SELECT canal, tipo, status FROM notificacoes ORDER BY id');
   assert.deepEqual(notif.map((n) => [n.canal, n.tipo]), [['email', 'interno'], ['whatsapp', 'cliente']]);
 
-  const txt = await esperarArquivo(path.join(pastaPedidos, `${r.corpo.numero}.txt`));
+  const { rows: [{ numero }] } = await pool.query('SELECT numero FROM pedidos');
+  assert.match(numero, /^RFS-\d{4}-0001$/);
+  const txt = await esperarArquivo(path.join(pastaPedidos, `${numero}.txt`));
+  assert.ok(txt.includes(`(código do cliente: ${r.corpo.codigo})`));
   for (const trecho of ['11.222.333/0001-81', 'Campinas/SP', 'Pote dobrável com mosquetão — Azul', 'TOTAL (15 unidades): R$ 239,50', 'Ligar depois das 14h.']) {
     assert.ok(txt.replace(/ /g, ' ').includes(trecho), `TXT sem "${trecho}"`);
   }
@@ -120,7 +127,7 @@ test('mesma idempotencyKey devolve o mesmo pedido sem duplicar', opcoes, async (
   const b = await post('/api/pedidos', corpo);
   assert.equal(a.status, 201);
   assert.equal(b.status, 200);
-  assert.equal(b.corpo.numero, a.corpo.numero);
+  assert.equal(b.corpo.codigo, a.corpo.codigo);
   const { rows } = await pool.query('SELECT count(*)::int AS n FROM pedidos');
   assert.equal(rows[0].n, 1);
 });
@@ -150,7 +157,8 @@ test('pedido só com nome e WhatsApp é aceito; sem nenhum contato é recusado',
     [pedido.razao_social, pedido.cnpj, pedido.cidade, pedido.uf, pedido.contato_email, pedido.canal_preferido],
     ['', '', '', '', '', 'whatsapp'],
   );
-  const txt = await esperarArquivo(path.join(pastaPedidos, `${r.corpo.numero}.txt`));
+  const { rows: [{ numero: numeroInterno }] } = await pool.query('SELECT numero FROM pedidos');
+  const txt = await esperarArquivo(path.join(pastaPedidos, `${numeroInterno}.txt`));
   assert.match(txt, /Nome\/Razão social:\s+—/);
   assert.match(txt, /CPF\/CNPJ:\s+—/);
   const { rows: notif } = await pool.query("SELECT canal, destino FROM notificacoes WHERE tipo = 'cliente'");
@@ -288,4 +296,29 @@ test('pedido mínimo: configurável no admin, público no site e validado no ped
 
   await put({ pedidoMinimo: 0 }); // 0 = sem mínimo
   assert.equal((await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 1 }] }))).status, 201);
+});
+
+test('código público: único, com a data do dia, e busca no admin ignorando hífen e caixa', opcoes, async () => {
+  const codigos = new Set();
+  for (let i = 0; i < 5; i++) {
+    const r = await post('/api/pedidos', pedidoValido());
+    assert.equal(r.status, 201);
+    codigos.add(r.corpo.codigo);
+  }
+  assert.equal(codigos.size, 5);
+  const ddmm = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
+    .format(new Date()).replace('/', '');
+  for (const c of codigos) assert.ok(c.startsWith(`RF-${ddmm}-`), c);
+
+  const cookie = await loginAdmin();
+  const alvo = [...codigos][2];
+  const buscar = async (termo) =>
+    (await (await fetch(`${base}/api/admin/pedidos?busca=${encodeURIComponent(termo)}`, { headers: { cookie } })).json());
+  for (const termo of [alvo, alvo.toLowerCase().replaceAll('-', ''), alvo.slice(-3).toLowerCase()]) {
+    const r = await buscar(termo);
+    assert.ok(r.pedidos.some((p) => p.codigo_publico === alvo), termo);
+  }
+  assert.equal((await buscar('RFS-')).total, 5);
+  assert.equal((await buscar('não existe')).total, 0);
+  assert.equal((await buscar('100%')).total, 0);
 });

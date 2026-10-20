@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { htmlPedido, textoPedido } from '../src/services/notificacao.service.js';
 
 const pedido = {
-  numero: 'RFS-2026-0007', criado_em: '2026-10-18T20:09:00Z', razao_social: 'Pet <b>Shop</b>', nome_fantasia: '',
+  numero: 'RFS-2026-0007', codigo_publico: 'RF-1810-K7Q', criado_em: '2026-10-18T20:09:00Z', razao_social: 'Pet <b>Shop</b>', nome_fantasia: '',
   cnpj: '11222333000181', cidade: 'Campinas', uf: 'SP', contato_nome: 'Maria', contato_whatsapp: '11987654321',
   contato_email: 'maria@exemplo.com', canal_preferido: 'email', valor_total: '239.50', observacoes: 'Ligar à tarde\n<script>',
 };
@@ -45,4 +45,13 @@ test('pessoa física: CPF formatado e rótulos Nome/Razão social e CPF/CNPJ', (
   assert.ok(txt.includes('Nome/Razão social:   Maria Silva'));
   assert.ok(txt.includes('CPF/CNPJ:            529.982.247-25'));
   assert.ok(htmlPedido(p, itens, loja).includes('529.982.247-25'));
+});
+
+test('cliente vê só o código público; equipe vê número interno e código', () => {
+  const cliente = htmlPedido(pedido, itens, loja, { paraCliente: true });
+  assert.ok(cliente.includes('RF-1810-K7Q') && !cliente.includes('RFS-2026-0007'));
+  assert.ok(!textoPedido(pedido, itens, { paraCliente: true }).includes('RFS-2026-0007'));
+  const interno = htmlPedido(pedido, itens, loja);
+  assert.ok(interno.includes('RFS-2026-0007') && interno.includes('RF-1810-K7Q'));
+  assert.ok(textoPedido(pedido, itens).includes('PEDIDO RFS-2026-0007  (código do cliente: RF-1810-K7Q)'));
 });

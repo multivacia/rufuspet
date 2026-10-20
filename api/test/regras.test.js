@@ -6,6 +6,8 @@ import {
   cnpjValido,
   cpfValido,
   formatarDocumento,
+  gerarCodigoPublico,
+  normalizarCodigo,
   validarCliente,
   validarContato,
   validarItens,
@@ -113,4 +115,12 @@ test('observações mantêm quebras de linha e limitam tamanho', () => {
 test('total calculado em centavos sem erro de arredondamento', () => {
   assert.equal(calcularTotal([{ precoUnitario: '11.90', quantidade: 3 }, { precoUnitario: '16.90', quantidade: 12 }]), 238.5);
   assert.equal(calcularTotal([{ precoUnitario: '0.10', quantidade: 3 }]), 0.3);
+});
+
+test('código público: formato RF-DDMM-XXX no fuso de Brasília e normalização', () => {
+  let i = 0;
+  const sequencia = [0, 26, 9]; // A, 9, K
+  const codigo = gerarCodigoPublico(new Date('2026-10-21T02:30:00Z'), () => sequencia[i++]);
+  assert.equal(codigo, 'RF-2010-A9K'); // 23h30 de 20/10 em Brasília
+  assert.equal(normalizarCodigo(' rf-2010 a9k '), 'RF2010A9K');
 });
