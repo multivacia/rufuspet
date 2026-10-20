@@ -4,6 +4,8 @@ import {
   ErroPedido,
   calcularTotal,
   cnpjValido,
+  cpfValido,
+  formatarDocumento,
   validarCliente,
   validarContato,
   validarItens,
@@ -29,6 +31,24 @@ test('CNPJ: aceita válido com e sem máscara, recusa dígito errado, curto e re
   assert.equal(cnpjValido('11.222.333/0001-82'), false);
   assert.equal(cnpjValido('1122233300018'), false);
   assert.equal(cnpjValido('00000000000000'), false);
+});
+
+test('CPF: aceita válido com e sem máscara, recusa dígito errado e repetido', () => {
+  assert.equal(cpfValido('529.982.247-25'), true);
+  assert.equal(cpfValido('52998224725'), true);
+  assert.equal(cpfValido('529.982.247-26'), false);
+  assert.equal(cpfValido('111.111.111-11'), false);
+  assert.equal(cpfValido('5299822472'), false);
+});
+
+test('documento do cliente aceita CPF ou CNPJ e formata conforme o tipo', () => {
+  assert.equal(validarCliente({ cnpj: '529.982.247-25' }).cnpj, '52998224725');
+  assert.equal(validarCliente({ cnpj: '11.222.333/0001-81' }).cnpj, '11222333000181');
+  assert.equal(campoDoErro(() => validarCliente({ cnpj: '529.982.247-26' })), 'cliente.cnpj');
+  assert.equal(campoDoErro(() => validarCliente({ cnpj: '123456789012' })), 'cliente.cnpj');
+  assert.equal(formatarDocumento('52998224725'), '529.982.247-25');
+  assert.equal(formatarDocumento('11222333000181'), '11.222.333/0001-81');
+  assert.equal(formatarDocumento(''), '');
 });
 
 test('cliente válido é normalizado (CNPJ só dígitos, UF maiúscula)', () => {

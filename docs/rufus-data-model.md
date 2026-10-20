@@ -254,3 +254,7 @@ Para clientes que preferem consultar antes de se identificar: no `POST /api/pedi
 menos um entre `contato.whatsapp` e `contato.email` são obrigatórios. `cliente.*` (razão social, nome fantasia,
 CNPJ, cidade, UF) é opcional e gravado como texto vazio quando ausente; CNPJ e UF continuam validados quando
 preenchidos. Se o `canalPreferido` escolhido não foi informado, a API usa o outro canal.
+
+**Pessoa física (2026-10-20):** `pedidos.cnpj` guarda **CPF (11 dígitos) ou CNPJ (14 dígitos)**, só dígitos, validado
+pelo dígito verificador correspondente; `pedidos.razao_social` guarda nome (PF) ou razão social (PJ). Na API o
+campo continua `cliente.cnpj` / `cliente.razaoSocial`; nas telas, "CPF / CNPJ" e "Nome / Razão social".

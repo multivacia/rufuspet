@@ -4,7 +4,7 @@ import { useCarrinho } from '../lib/carrinho.jsx';
 import { useProdutos } from '../lib/produtos.jsx';
 import { criarPedido } from '../lib/api.js';
 import { brl } from '../lib/formato.js';
-import { UFS, mascaraCnpj, mascaraTelefone } from '../lib/loja.js';
+import { UFS, mascaraDocumento, mascaraTelefone } from '../lib/loja.js';
 import Quantidade from '../components/Quantidade.jsx';
 import { useLoja } from '../lib/dadosLoja.jsx';
 
@@ -170,7 +170,7 @@ export default function Pedido() {
 
           <div className="grade-campos">
             <label className="campo largo">
-              Nome *
+              Seu nome *
               <input {...campo('nome')} required autoComplete="name" />
               {erroDe('nome')}
             </label>
@@ -206,11 +206,11 @@ export default function Pedido() {
           </div>
 
           <h3 className="subtitulo-form">
-            Dados da empresa <span>(opcional — o vendedor pode completar depois)</span>
+            Dados para o pedido <span>(opcional — pessoa física ou empresa; o vendedor pode completar depois)</span>
           </h3>
           <div className="grade-campos">
             <label className="campo largo">
-              Razão social
+              Nome / Razão social
               <input {...campo('razaoSocial')} autoComplete="organization" />
               {erroDe('razaoSocial')}
             </label>
@@ -219,8 +219,8 @@ export default function Pedido() {
               <input {...campo('nomeFantasia')} />
             </label>
             <label className="campo">
-              CNPJ
-              <input {...campo('cnpj', mascaraCnpj)} inputMode="numeric" placeholder="00.000.000/0000-00" />
+              CPF / CNPJ
+              <input {...campo('cnpj', mascaraDocumento)} inputMode="numeric" placeholder="CPF ou CNPJ" />
               {erroDe('cnpj')}
             </label>
             <label className="campo">

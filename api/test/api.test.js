@@ -151,14 +151,24 @@ test('pedido só com nome e WhatsApp é aceito; sem nenhum contato é recusado',
     ['', '', '', '', '', 'whatsapp'],
   );
   const txt = await esperarArquivo(path.join(pastaPedidos, `${r.corpo.numero}.txt`));
-  assert.match(txt, /Razão social:\s+—/);
-  assert.match(txt, /CNPJ:\s+—/);
+  assert.match(txt, /Nome\/Razão social:\s+—/);
+  assert.match(txt, /CPF\/CNPJ:\s+—/);
   const { rows: notif } = await pool.query("SELECT canal, destino FROM notificacoes WHERE tipo = 'cliente'");
   assert.deepEqual(notif, [{ canal: 'whatsapp', destino: '11977207655' }]);
 
   const semContato = await post('/api/pedidos', pedidoValido({ contato: { nome: 'João Pet', canalPreferido: 'whatsapp' } }));
   assert.equal(semContato.status, 400);
   assert.equal(semContato.corpo.erro.campo, 'contato.whatsapp');
+});
+
+test('pessoa física: pedido com CPF é aceito e guardado só com dígitos', opcoes, async () => {
+  const r = await post('/api/pedidos', pedidoValido({ cliente: { razaoSocial: 'Maria Silva', cnpj: '529.982.247-25' } }));
+  assert.equal(r.status, 201);
+  const { rows: [pedido] } = await pool.query('SELECT razao_social, cnpj FROM pedidos');
+  assert.deepEqual(pedido, { razao_social: 'Maria Silva', cnpj: '52998224725' });
+  const ruim = await post('/api/pedidos', pedidoValido({ cliente: { cnpj: '529.982.247-26' } }));
+  assert.equal(ruim.status, 400);
+  assert.equal(ruim.corpo.erro.mensagem, 'CPF ou CNPJ inválido');
 });
 
 test('campo invisível preenchido (robô) não grava pedido', opcoes, async () => {

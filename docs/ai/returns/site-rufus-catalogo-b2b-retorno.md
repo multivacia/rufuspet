@@ -222,6 +222,18 @@
 - Ajuste de teste: a pasta de TXT de teste é limpa a cada teste (numeração reinicia por teste; em produção não reinicia).
 - Branch `develop` (não publicada; `main` e VPS sem esta mudança).
 
+## Atualização 2026-10-20 — pessoa física (Nome/Razão social, CPF/CNPJ)
+- Pedido do usuário: rótulos "Nome / Razão social" e "CPF / CNPJ" para atender pessoas físicas.
+- API: `cpfValido`, `documentoValido` (CPF 11 dígitos ou CNPJ 14) e `formatarDocumento`; mensagem "CPF ou CNPJ
+  inválido"; mesma coluna `pedidos.cnpj` (sem migration). E-mail/TXT com rótulos "Nome/Razão social" e "CPF/CNPJ".
+- Web: máscara que formata CPF até 11 dígitos e CNPJ a partir do 12º; seção "Dados para o pedido (opcional —
+  pessoa física ou empresa…)"; campo de contato renomeado para "Seu nome"; admin → Pedidos com coluna
+  "Cliente (nome/razão social)" e documento formatado conforme o tipo.
+- Validação: API `npm test` 28/28 (novos: CPF, documento CPF/CNPJ, pedido PF via API, e-mail PF); web `npm test`
+  6/6 (máscara); build ok; E2E Playwright: máscara 11.222.333/0001-81 e 529.982.247-25 ao digitar; pedido PF
+  RFS-2026-0039 exibido no admin com CPF formatado; sem erros JS.
+- Branch `develop` (não publicada; `main` e VPS sem esta mudança nem a anterior de dados opcionais).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

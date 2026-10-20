@@ -39,6 +39,32 @@ export function cnpjValido(valor) {
   return cnpj.endsWith(`${d1}${d2}`);
 }
 
+export function cpfValido(valor) {
+  const cpf = somenteDigitos(valor);
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  const digito = (base) => {
+    let soma = 0;
+    for (let i = 0; i < base.length; i++) soma += Number(base[i]) * (base.length + 1 - i);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+  const d1 = digito(cpf.slice(0, 9));
+  const d2 = digito(cpf.slice(0, 9) + d1);
+  return cpf.endsWith(`${d1}${d2}`);
+}
+
+/** Documento do cliente: CPF (11 dígitos) ou CNPJ (14 dígitos). */
+export function documentoValido(valor) {
+  const d = somenteDigitos(valor);
+  return d.length === 11 ? cpfValido(d) : cnpjValido(d);
+}
+
+export function formatarDocumento(valor) {
+  const d = somenteDigitos(valor);
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+  return formatarCnpj(d);
+}
+
 export function formatarCnpj(valor) {
   return somenteDigitos(valor).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
@@ -62,10 +88,11 @@ function texto(valor, { min, max, mensagem, campo }) {
 export function validarCliente(cliente) {
   if (cliente != null && typeof cliente !== 'object') throw invalido('Dados da empresa inválidos', 'cliente');
   const c = cliente ?? {};
-  const razaoSocial = texto(c.razaoSocial, { min: 0, max: 150, mensagem: 'Razão social muito longa', campo: 'cliente.razaoSocial' });
+  const razaoSocial = texto(c.razaoSocial, { min: 0, max: 150, mensagem: 'Nome/razão social muito longo', campo: 'cliente.razaoSocial' });
   const nomeFantasia = texto(c.nomeFantasia, { min: 0, max: 150, mensagem: 'Nome fantasia muito longo', campo: 'cliente.nomeFantasia' });
-  const cnpj = somenteDigitos(texto(c.cnpj, { min: 0, max: 20, mensagem: 'CNPJ inválido', campo: 'cliente.cnpj' }));
-  if (cnpj && !cnpjValido(cnpj)) throw invalido('CNPJ inválido', 'cliente.cnpj');
+  // Campo "cnpj" guarda CPF (pessoa física) ou CNPJ, só dígitos.
+  const cnpj = somenteDigitos(texto(c.cnpj, { min: 0, max: 20, mensagem: 'CPF ou CNPJ inválido', campo: 'cliente.cnpj' }));
+  if (cnpj && !documentoValido(cnpj)) throw invalido('CPF ou CNPJ inválido', 'cliente.cnpj');
   const cidade = texto(c.cidade, { min: 0, max: 100, mensagem: 'Cidade muito longa', campo: 'cliente.cidade' });
   const uf = texto(c.uf, { min: 0, max: 2, mensagem: 'Selecione a UF', campo: 'cliente.uf' }).toUpperCase();
   if (uf && !UFS.includes(uf)) throw invalido('Selecione a UF', 'cliente.uf');

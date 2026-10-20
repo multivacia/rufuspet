@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import nodemailer from 'nodemailer';
 import { pool } from '../db.js';
-import { formatarCnpj } from './regras-pedido.js';
+import { formatarDocumento } from './regras-pedido.js';
 import { buscarLoja } from './loja.service.js';
 
 // Depois do commit do pedido: grava o TXT do pedido e envia as notificações por e-mail
@@ -23,9 +23,9 @@ export function textoPedido(pedido, itens) {
   const sub = '-'.repeat(60);
   const unidades = itens.reduce((s, i) => s + i.quantidade, 0);
   const campos = [
-    ['Razão social', pedido.razao_social || '—'],
+    ['Nome/Razão social', pedido.razao_social || '—'],
     ['Nome fantasia', pedido.nome_fantasia || '—'],
-    ['CNPJ', formatarCnpj(pedido.cnpj) || '—'],
+    ['CPF/CNPJ', formatarDocumento(pedido.cnpj) || '—'],
     ['Cidade/UF', [pedido.cidade, pedido.uf].filter(Boolean).join('/') || '—'],
     ['Responsável', pedido.contato_nome],
     ['WhatsApp', pedido.contato_whatsapp ? formatarWhatsapp(pedido.contato_whatsapp) : '—'],
@@ -106,9 +106,9 @@ export function htmlPedido(pedido, itens, loja, { paraCliente = false } = {}) {
     `<td style="padding:4px 0;font-size:14px;color:#101A33"><b>${esc(valor)}</b></td></tr>`;
 
   const cliente = [
-    ['Razão social', pedido.razao_social || '—'],
+    ['Nome/Razão social', pedido.razao_social || '—'],
     ['Nome fantasia', pedido.nome_fantasia || '—'],
-    ['CNPJ', formatarCnpj(pedido.cnpj) || '—'],
+    ['CPF/CNPJ', formatarDocumento(pedido.cnpj) || '—'],
     ['Cidade/UF', [pedido.cidade, pedido.uf].filter(Boolean).join('/') || '—'],
     ['Responsável', pedido.contato_nome],
     ['WhatsApp', pedido.contato_whatsapp ? formatarWhatsapp(pedido.contato_whatsapp) : '—'],

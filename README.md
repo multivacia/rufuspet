@@ -28,7 +28,8 @@ npm run dev   # http://localhost:5173
 
 - **Vitrine** (`/`): produtos com foto, cor e preço por unidade; o lojista monta o pedido.
 - **Pedido** (`/pedido`): revisão dos itens + dados do cliente. Obrigatórios: **nome** e **pelo menos um contato**
-  (WhatsApp ou e-mail). Dados da empresa (razão social, CNPJ, cidade/UF) são opcionais; se informados, são validados.
+  (WhatsApp ou e-mail). Dados do comprador (nome/razão social, CPF/CNPJ, cidade/UF) são opcionais — vale pessoa física ou empresa;
+  se informados, são validados.
   Sem pagamento online e sem controle de estoque.
 - **API** grava o pedido no PostgreSQL, gera o número `RFS-<ano>-<sequencial>` e, em seguida,
   grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para os destinatários definidos no admin → **Loja** (ou `EMAILS_INTERNOS`
