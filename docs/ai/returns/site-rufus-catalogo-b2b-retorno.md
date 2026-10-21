@@ -249,6 +249,15 @@
   `numero`, página sem "RFS-", busca "rf 2010 tw7" encontra o pedido; WhatsApp do admin com o código; sem erros JS.
 - Branch `develop` (não publicada; `main` e VPS sem esta mudança). No deploy: `atualizar.sh` aplica a migration 007.
 
+## Atualização 2026-10-21 — publicação no VPS (PRs #5 e #6)
+- PR #5 (dados da empresa opcionais + pessoa física) e PR #6 (código público RF-DDMM-XXX) mesclados no `main`
+  (`31f5ffd`, `5deb5e2`).
+- VPS (executado pelo usuário): `git pull --ff-only` (6b8e18a → 5deb5e2, já com o `atualizar.sh` corrigido) e
+  `atualizar.sh` → backup `~/backups/rufuspet/rufus-20261021-021525.sql.gz`, `aplicada: 007_codigo_publico.sql`,
+  build ok, `rufus-api` reiniciado, `/health` ok; `sgp-api` online. Sem 403 desta vez (correção de permissões ativa).
+- Pendente do usuário: conferir em produção a confirmação com "Código do pedido: RF-…", códigos dos pedidos antigos
+  e busca no admin.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
