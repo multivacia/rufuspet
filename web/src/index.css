@@ -104,3 +104,47 @@ a{color:inherit}
 .estoque-pedido{margin:12px 0 0;font-size:13px}
 .estoque-pedido .mono{font-size:12.5px}
 @media (max-width:760px){.estoque-forms{grid-template-columns:1fr}.estoque-linha,.estoque-linha-2{grid-template-columns:1fr 1fr}.admin-topbar-in{flex-wrap:wrap;gap:12px}}
+
+/* Clientes e pedidos (admin) */
+.titulo-acoes{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.titulo-acoes .cta-primario{height:38px}
+.botao-sec{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:3px;background:#fff;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-decoration:none}
+.botao-sec:hover:not(:disabled){background:var(--line-soft)}
+.botao-sec:disabled{opacity:.5;cursor:not-allowed}
+.fases{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.fases button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);cursor:pointer;margin-bottom:-1px}
+.fases button.on{color:var(--ink);border-color:var(--lime-deep)}
+.contador{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--lime-deep);color:#fff;font-size:10px;line-height:18px;text-align:center}
+.contador.neutro{background:var(--line);color:var(--ink)}
+.alerta-aviso{background:#FFF7E0;color:#7A5300;border:1px solid #F0D58A;border-radius:3px;padding:10px 14px;font-size:13.5px;margin-bottom:16px}
+.sem-cliente{display:inline-block;margin-top:3px;font-size:10.5px;color:#7A5300;border:1px solid #F0D58A;background:#FFF7E0;border-radius:3px;padding:1px 6px;font-family:'IBM Plex Mono',monospace}
+.sem-cliente.grave{color:var(--erro);border-color:rgba(192,57,43,.35);background:var(--erro-bg)}
+.etiqueta{font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em}
+.detalhe-pedido{background:var(--paper)}
+.bloco-detalhe{padding:12px 0 14px;border-bottom:1px solid var(--line-soft);margin-bottom:12px}
+.cliente-vendedor{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.campo-vendedor{max-width:260px;margin:0}
+.campo-vendedor input{height:36px}
+.vincular-cliente{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:3px;background:var(--card)}
+.aviso-vinculo{font-size:13px;color:#7A5300;margin-bottom:8px}
+.vinc-lista{list-style:none;padding:0;margin:6px 0}
+.vinc-linha{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line-soft)}
+.vinc-linha .cta-primario{height:32px;padding:0 14px}
+.motivo-vinculo{display:block;margin-top:3px;font-size:10.5px;color:var(--lime-deep);font-family:'IBM Plex Mono',monospace}
+.editor-itens select{height:34px;max-width:320px;width:100%;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:13px;padding:0 6px}
+.editor-itens input.qtd{width:70px}
+.editor-itens input.preco{width:90px}
+.editor-itens input{height:32px;padding:0 8px;border:1px solid var(--line);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-align:right}
+.editor-itens input.acima{border-color:var(--erro);outline:1px solid var(--erro)}
+.editor-itens .num{text-align:right;white-space:nowrap}
+.form-cliente .grade-cliente{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;align-items:end}
+.form-cliente .largo{grid-column:span 2}
+.form-cliente select{width:100%;height:42px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:14px}
+.check-ativo{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:16px;height:42px}
+.resumo-cliente{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.resumo-cliente>div{background:var(--card);border:1px solid var(--line-soft);border-radius:3px;padding:12px 14px}
+.resumo-cliente strong{display:block;font-size:20px;margin-top:4px}
+.resumo-cliente small{font-size:12px;color:var(--ink-soft);font-weight:400}
+.linha-clicavel{cursor:pointer}
+.linha-clicavel:hover td{background:var(--line-soft)}
+@media (max-width:760px){.form-cliente .grade-cliente{grid-template-columns:1fr 1fr}.form-cliente .largo{grid-column:span 2}.resumo-cliente{grid-template-columns:1fr 1fr}}

@@ -385,30 +385,3 @@ export async function estornarPedido(client, pedidoId, criadoPor = '') {
   }
   await client.query('UPDATE pedidos SET estoque_baixado_em = NULL WHERE id = $1', [pedidoId]);
 }
-
-/**
- * Atualiza status/observações do pedido aplicando a regra de estoque na mesma transação.
- * Devolve a linha atualizada ou null se o pedido não existe.
- */
-export async function atualizarPedidoComEstoque(pedidoId, updates, criadoPor = '') {
-  return withTransaction(async (client) => {
-    const { rows } = await client.query('SELECT * FROM pedidos WHERE id = $1 FOR UPDATE', [pedidoId]);
-    const pedido = rows[0];
-    if (!pedido) return null;
-
-    if ('status' in updates) {
-      const baixado = pedido.estoque_baixado_em != null;
-      const precisaBaixa = statusComBaixa(updates.status);
-      if (precisaBaixa && !baixado) await baixarPedido(client, pedidoId, criadoPor);
-      if (!precisaBaixa && baixado) await estornarPedido(client, pedidoId, criadoPor);
-    }
-
-    const campos = Object.keys(updates);
-    const sets = campos.map((campo, i) => `${campo} = $${i + 2}`).join(', ');
-    const { rows: atualizados } = await client.query(
-      `UPDATE pedidos SET ${sets}, atualizado_em = now() WHERE id = $1 RETURNING *`,
-      [pedidoId, ...campos.map((c) => updates[c])],
-    );
-    return atualizados[0];
-  });
-}

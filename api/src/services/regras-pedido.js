@@ -18,7 +18,7 @@ export const QUANTIDADE_MAXIMA = 9999;
 
 // Código público do pedido (RF-DDMM-XXX). Mesmo alfabeto da migration 007: sem 0/O, 1/I/L, 2/Z, 5/S.
 export const ALFABETO_CODIGO = 'ABCDEFGHJKMNPQRTUVWXY346789';
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function somenteDigitos(valor) {
   return String(valor ?? '').replace(/\D/g, '');

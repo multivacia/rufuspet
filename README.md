@@ -43,6 +43,10 @@ npm run dev   # http://localhost:5173
   Custo **PEPS**: cada venda consome as compras mais antigas. O pedido baixa o estoque ao passar para
   `confirmado`/`faturado` (bloqueado se faltar saldo) e estorna ao voltar para `novo`/`cancelado`; o detalhe do pedido
   mostra custo e margem. Ver `docs/rufus-data-model.md`, seção "Migration 008".
+- **Clientes e pedidos** (admin): o que chega do site é **solicitação**; vira pedido ao confirmar, o que exige
+  cliente vinculado (sugestão por CPF/CNPJ, WhatsApp ou e-mail, ou "Venda balcão"). Itens, preços, cliente e vendedor
+  editáveis a qualquer momento; **Novo pedido** para vendas fora do site; aba **Clientes** com ficha e histórico
+  (total, custo, margem). Ver `docs/rufus-data-model.md`, seção "Migration 010".
 - **WhatsApp (links wa.me, sem API):** na confirmação, o cliente pode enviar o pedido pelo WhatsApp da loja
   (número do admin → Loja), com itens e total já escritos; no admin → Pedidos, "Falar no WhatsApp" abre conversa
   com o cliente. Nada é enviado automaticamente: a pessoa confirma no próprio WhatsApp.
@@ -71,5 +75,5 @@ só os testes de regra (sem banco) rodam.
 
 Etapas 1–7 do kickoff concluídas. Etapa 8 (2026-10-11): venda por unidade, sem estoque, dados da
 empresa no pedido, TXT do pedido, vitrine/pedido redesenhados, PWA (ver `docs/rufus-data-model.md`,
-seção "Migration 003"). Controle de estoque PEPS no admin (2026-10-23, migration 008).
+seção "Migration 003"). Controle de estoque PEPS no admin (2026-10-23, migrations 008–009); clientes e ciclo solicitação → pedido (migration 010).
 Pendente: envio de WhatsApp, retry/contingência das notificações.

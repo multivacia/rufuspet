@@ -41,6 +41,7 @@ after(async () => {
 beforeEach(async () => {
   if (!urlTeste) return;
   await pool.query('TRUNCATE pedidos, admin_usuarios, estoque_lotes RESTART IDENTITY CASCADE');
+  await pool.query("DELETE FROM clientes WHERE nome <> 'Venda balcão'");
   await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = '', pedido_minimo = 0");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   // A numeração reinicia a cada teste; TXT de um teste anterior com o mesmo número não pode ser reaproveitado.
@@ -388,6 +389,14 @@ async function req(cookie, metodo, caminho, corpo) {
   return { status: r.status, corpo: await r.json() };
 }
 
+async function balcaoId() {
+  return (await pool.query("SELECT id FROM clientes WHERE nome = 'Venda balcão'")).rows[0].id;
+}
+
+async function idDoPedido(codigo) {
+  return (await pool.query('SELECT id FROM pedidos WHERE codigo_publico = $1', [codigo])).rows[0].id;
+}
+
 async function saldoDe(cookie, sku) {
   const { corpo } = await req(cookie, 'GET', '/api/admin/estoque');
   return corpo.saldos.find((s) => s.sku === sku);
@@ -410,7 +419,7 @@ test('estoque: entradas com custo, baixa PEPS ao confirmar, estorno ao cancelar'
   // Pedido novo não mexe no estoque.
   assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 20);
 
-  const conf = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' });
+  const conf = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado', clienteId: await balcaoId() });
   assert.equal(conf.status, 200);
   assert.ok(conf.corpo.estoque_baixado_em);
   k3 = await saldoDe(cookie, 'RFS-K3');
@@ -453,14 +462,15 @@ test('estoque: confirmação bloqueada sem saldo, sem baixa parcial', opcoes, as
   const { corpo: criado } = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 3 }, { sku: 'RFS-K6', quantidade: 2 }] }));
   const id = (await pool.query('SELECT id FROM pedidos WHERE codigo_publico = $1', [criado.codigo])).rows[0].id;
 
-  const r = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' });
+  const r = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado', clienteId: await balcaoId() });
   assert.equal(r.status, 409);
   assert.equal(r.corpo.erro.codigo, 'ESTOQUE_INSUFICIENTE');
   assert.deepEqual(r.corpo.erro.faltas.map((f) => [f.sku, f.pedido, f.saldo]), [['RFS-K6', 2, 1]]);
   assert.match(r.corpo.erro.mensagem, /pedido 2, saldo 1/);
 
-  const pedido = (await pool.query('SELECT status, estoque_baixado_em FROM pedidos WHERE id = $1', [id])).rows[0];
+  const pedido = (await pool.query('SELECT status, estoque_baixado_em, cliente_id FROM pedidos WHERE id = $1', [id])).rows[0];
   assert.equal(pedido.status, 'novo');
+  assert.equal(pedido.cliente_id, null); // vínculo também desfeito: tudo ou nada
   assert.equal(pedido.estoque_baixado_em, null);
   assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 5); // K3 tinha saldo, mas nada foi baixado
 
@@ -524,4 +534,185 @@ test('estoque: fornecedor e documento opcionais na entrada, com sugestão de for
 
   const movs = (await req(cookie, 'GET', '/api/admin/estoque/movimentos?sku=RFS-K3')).corpo.movimentos;
   assert.equal(movs.find((m) => m.loteId === e1.corpo.loteId).fornecedor, 'Ningbo Pet Supplies');
+});
+
+// ---------------------------------------------------------------- clientes e pedido no admin
+
+const CLIENTE_PJ = {
+  nome: 'Pet Shop Teste Ltda', nomeFantasia: 'Pet Feliz', documento: '11.222.333/0001-81', inscricaoEstadual: 'isento',
+  comprador: 'Maria', whatsapp: '+55 (11) 98765-4321', email: 'Maria@Exemplo.com', cidade: 'Campinas', uf: 'sp',
+  endereco: 'Rua A, 10', vendedor: '  Gustavo ', observacoes: 'paga no pix',
+};
+
+test('clientes: cadastro, validações, documento único e busca', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const criado = await req(cookie, 'POST', '/api/admin/clientes', CLIENTE_PJ);
+  assert.equal(criado.status, 201);
+  const c = criado.corpo;
+  assert.equal(c.tipo, 'PJ');
+  assert.equal(c.documento, '11222333000181');
+  assert.equal(c.inscricaoEstadual, 'ISENTO');
+  assert.equal(c.whatsapp, '11987654321'); // sem o 55
+  assert.equal(c.email, 'maria@exemplo.com');
+  assert.equal(c.uf, 'SP');
+  assert.equal(c.vendedor, 'Gustavo');
+
+  const dup = await req(cookie, 'POST', '/api/admin/clientes', { nome: 'Outro', documento: '11222333000181' });
+  assert.equal(dup.status, 409);
+  assert.match(dup.corpo.erro.mensagem, /Pet Shop Teste Ltda/);
+  const campo = async (corpo) => (await req(cookie, 'POST', '/api/admin/clientes', corpo)).corpo.erro?.campo;
+  assert.equal(await campo({ nome: '' }), 'nome');
+  assert.equal(await campo({ nome: 'X', documento: '111.111.111-11' }), 'documento');
+  assert.equal(await campo({ nome: 'X', whatsapp: '123' }), 'whatsapp');
+  assert.equal(await campo({ nome: 'X', email: 'sem-arroba' }), 'email');
+  assert.equal(await campo({ nome: 'X', uf: 'XX' }), 'uf');
+
+  const pf = await req(cookie, 'POST', '/api/admin/clientes', { nome: 'João Silva', documento: '529.982.247-25', tipo: 'PJ' });
+  assert.equal(pf.corpo.tipo, 'PF'); // tipo segue o documento
+
+  const ed = await req(cookie, 'PUT', `/api/admin/clientes/${c.id}`, { ...CLIENTE_PJ, comprador: 'Ana', ativo: false });
+  assert.equal(ed.status, 200);
+  assert.equal(ed.corpo.comprador, 'Ana');
+  assert.equal(ed.corpo.ativo, false);
+  assert.equal((await req(cookie, 'PUT', '/api/admin/clientes/9999', CLIENTE_PJ)).status, 404);
+
+  const busca = async (t) => (await req(cookie, 'GET', `/api/admin/clientes?busca=${encodeURIComponent(t)}`)).corpo.clientes.map((x) => x.nome);
+  assert.deepEqual(await busca('feliz'), ['Pet Shop Teste Ltda']);
+  assert.deepEqual(await busca('11.222.333'), ['Pet Shop Teste Ltda']);
+  assert.deepEqual(await busca('98765'), ['Pet Shop Teste Ltda']);
+  assert.deepEqual(await busca('gustavo'), ['Pet Shop Teste Ltda']);
+  assert.equal((await req(cookie, 'GET', '/api/admin/clientes')).corpo.total, 3); // + Venda balcão
+  assert.equal((await fetch(`${base}/api/admin/clientes`)).status, 401);
+});
+
+test('pedido: confirmar exige cliente; vínculo herda vendedor; sugestões por documento/WhatsApp/e-mail', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const cli = (await req(cookie, 'POST', '/api/admin/clientes', CLIENTE_PJ)).corpo;
+  await req(cookie, 'POST', '/api/admin/clientes', { nome: 'Só e-mail', email: 'maria@exemplo.com' });
+  await req(cookie, 'POST', '/api/admin/clientes', { nome: 'Sem relação', whatsapp: '11911112222' });
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 50, custoUnitario: 2 });
+
+  const { corpo: criado } = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 2 }] }));
+  const id = await idDoPedido(criado.codigo);
+
+  const sug = (await req(cookie, 'GET', `/api/admin/pedidos/${id}/sugestoes-clientes`)).corpo.clientes;
+  assert.deepEqual(sug.map((s) => [s.nome, s.motivos]), [
+    ['Pet Shop Teste Ltda', ['CPF/CNPJ', 'WhatsApp', 'e-mail']],
+    ['Só e-mail', ['e-mail']],
+  ]);
+
+  const semCliente = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' });
+  assert.equal(semCliente.status, 422);
+  assert.equal(semCliente.corpo.erro.codigo, 'CLIENTE_OBRIGATORIO');
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 50);
+
+  const ok = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado', clienteId: cli.id });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.corpo.cliente_id, cli.id);
+  assert.equal(ok.corpo.vendedor, 'Gustavo'); // herdado da carteira
+
+  // Desvincular pedido confirmado não é permitido; trocar vendedor é.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { clienteId: null })).status, 422);
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { vendedor: 'Esposa' })).corpo.vendedor, 'Esposa');
+  // Cancelar não exige cliente; desvincular depois de cancelado é permitido.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'cancelado', clienteId: null })).status, 200);
+
+  const vend = (await req(cookie, 'GET', '/api/admin/vendedores')).corpo.vendedores;
+  assert.deepEqual(vend, ['Esposa', 'Gustavo']);
+});
+
+test('pedido: editar itens/preço — solicitação livre; com baixa, limite = saldo + o que o pedido já baixou', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const balcao = await balcaoId();
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 10, custoUnitario: 2, data: '2026-10-01' });
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 10, custoUnitario: 3, data: '2026-10-02' });
+
+  const { corpo: criado } = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 2 }] }));
+  const id = await idDoPedido(criado.codigo);
+
+  // Solicitação: edita sem olhar estoque, com preço negociado.
+  const sol = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens: [{ sku: 'RFS-K3', quantidade: 999, precoUnitario: '10,50' }] });
+  assert.equal(sol.status, 200);
+  assert.equal(sol.corpo.valor_total, '10489.50');
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 20);
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado', clienteId: balcao })).status, 409);
+
+  // Volta para 15 e confirma: saldo 5.
+  await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens: [{ sku: 'RFS-K3', quantidade: 15, precoUnitario: 10.5 }] });
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado', clienteId: balcao })).status, 200);
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 5);
+
+  // Confirmado: disponível = 5 + 15 = 20. 21 bloqueia sem mudar nada; 20 passa e reprocessa PEPS.
+  const demais = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens: [{ sku: 'RFS-K3', quantidade: 21 }] });
+  assert.equal(demais.status, 409);
+  assert.match(demais.corpo.erro.mensagem, /pedido 21, saldo 20/);
+  const itensDepois = (await pool.query('SELECT quantidade, preco_unitario_snapshot FROM pedido_itens WHERE pedido_id = $1', [id])).rows;
+  assert.deepEqual(itensDepois.map((i) => [i.quantidade, i.preco_unitario_snapshot]), [[15, '10.50']]);
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 5);
+
+  const vinte = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens: [{ sku: 'RFS-K3', quantidade: 20 }] });
+  assert.equal(vinte.status, 200);
+  assert.equal(vinte.corpo.valor_total, '238.00'); // sem preço informado = preço do catálogo (11,90)
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 0);
+  const lista = (await req(cookie, 'GET', '/api/admin/pedidos')).corpo;
+  assert.equal(lista.pedidos[0].custo_estoque, 50); // 10×2 + 10×3
+
+  // Reduz para 4: devolve 16 (PEPS reprocessado: as 4 saem da compra de R$ 2,00).
+  await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens: [{ sku: 'RFS-K3', quantidade: 4 }] });
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 16);
+  assert.equal((await req(cookie, 'GET', '/api/admin/pedidos')).corpo.pedidos[0].custo_estoque, 8);
+
+  // Validações dos itens.
+  const erro = async (itens) => (await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { itens })).corpo.erro?.mensagem;
+  assert.match(await erro([]), /pelo menos um item/);
+  assert.match(await erro([{ sku: 'RFS-K3', quantidade: 1 }, { sku: 'RFS-K3', quantidade: 2 }]), /repetido/);
+  assert.match(await erro([{ sku: 'RFS-K3', quantidade: 1, precoUnitario: '0' }]), /Preço/);
+  assert.match(await erro([{ sku: 'NAO-EXISTE', quantidade: 1 }]), /não encontrado/);
+});
+
+test('pedido manual (venda fora do site), fases e ficha do cliente com histórico', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const cli = (await req(cookie, 'POST', '/api/admin/clientes', CLIENTE_PJ)).corpo;
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K6', quantidade: 10, custoUnitario: 4 });
+
+  assert.equal((await req(cookie, 'POST', '/api/admin/pedidos', { itens: [{ sku: 'RFS-K6', quantidade: 1 }] })).status, 400);
+  assert.equal((await req(cookie, 'POST', '/api/admin/pedidos', { clienteId: cli.id, itens: [{ sku: 'RFS-K6', quantidade: 11 }] })).status, 409);
+
+  const manual = await req(cookie, 'POST', '/api/admin/pedidos', {
+    clienteId: cli.id, itens: [{ sku: 'RFS-K6', quantidade: 3, precoUnitario: '17,00' }], observacoes: 'fechado por telefone',
+  });
+  assert.equal(manual.status, 201);
+  assert.equal(manual.corpo.status, 'confirmado');
+  assert.equal(manual.corpo.origem, 'admin');
+  assert.equal(manual.corpo.vendedor, 'Gustavo');
+  assert.equal(manual.corpo.contato_nome, 'Maria');
+  assert.equal(manual.corpo.valor_total, '51.00');
+  assert.ok(manual.corpo.estoque_baixado_em);
+  assert.match(manual.corpo.codigo_publico, CODIGO_REGEX);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM notificacoes WHERE pedido_id = $1', [manual.corpo.id])).rows[0].n, 0);
+
+  // Uma solicitação vinculada mas não confirmada e uma cancelada não contam como compra.
+  const sol = await req(cookie, 'POST', '/api/admin/pedidos', { clienteId: cli.id, status: 'novo', itens: [{ sku: 'RFS-K6', quantidade: 1 }] });
+  assert.equal(sol.corpo.estoque_baixado_em, null);
+  const canc = await req(cookie, 'POST', '/api/admin/pedidos', { clienteId: cli.id, itens: [{ sku: 'RFS-K6', quantidade: 1 }] });
+  await req(cookie, 'PATCH', `/api/admin/pedidos/${canc.corpo.id}`, { status: 'cancelado' });
+  await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 1 }] })); // solicitação do site sem cliente
+
+  const fase = async (f) => (await req(cookie, 'GET', `/api/admin/pedidos?fase=${f}`)).corpo;
+  assert.equal((await fase('solicitacoes')).total, 2);
+  assert.equal((await fase('pedidos')).total, 1);
+  assert.equal((await fase('cancelados')).total, 1);
+  const todos = await fase('');
+  assert.equal(todos.total, 4);
+  assert.deepEqual(todos.contagem, { solicitacoes: 2, pedidos: 1, sem_cliente: 0 });
+  assert.equal(todos.pedidos.find((p) => p.id === manual.corpo.id).cliente_nome, 'Pet Shop Teste Ltda');
+  assert.equal((await req(cookie, 'GET', '/api/admin/pedidos?busca=pet%20feliz')).corpo.total, 4); // dados do pedido ou do cliente
+
+  const ficha = (await req(cookie, 'GET', `/api/admin/clientes/${cli.id}`)).corpo;
+  assert.equal(ficha.pedidos.length, 3);
+  assert.deepEqual(ficha.resumo, { compras: 1, totalComprado: 51, custo: 12, margem: 39, ultimaCompra: ficha.pedidos.at(-1).criadoEm });
+  const lst = (await req(cookie, 'GET', '/api/admin/clientes')).corpo.clientes.find((x) => x.id === cli.id);
+  assert.equal(lst.compras, 1);
+  assert.equal(lst.totalComprado, 51);
+  assert.equal((await req(cookie, 'GET', '/api/admin/clientes/9999')).status, 404);
 });

@@ -303,3 +303,33 @@ Rotas admin: `GET /api/admin/estoque` (saldos, custo médio, próximo custo PEPS
 identifica. `GET /api/admin/estoque/fornecedores` devolve os nomes já usados para sugestão. Frete/custo de importação
 ficará numa aba própria (futura) que calcula o custo unitário lançado na entrada.
 
+## Migration 010 — clientes e ciclo Solicitação → Pedido (2026-10-23)
+
+Decisões do usuário (MEI atendendo MEIs; o vendedor fecha por contato):
+- O que chega pelo site é **solicitação** (`status = 'novo'`); vira **pedido** quando o admin passa para
+  `confirmado`/`faturado`. `cancelado` também significa "não convertido". Para o cliente do site nada muda.
+- Uma base só: o histórico de compras do cliente são os pedidos `confirmado`/`faturado` ligados a ele
+  (não há tabela de histórico separada).
+- Confirmar exige cliente vinculado ("tem que ter lastro"); venda sem cadastro usa o cliente genérico "Venda balcão".
+- Vendas fora do site são lançadas no admin (`pedidos.origem = 'admin'`), sem e-mails/TXT.
+- Vendedor da Rufus: texto livre no cliente (carteira) e no pedido (quem fechou; herda do cliente ao vincular).
+- O admin edita o pedido a qualquer momento (itens, quantidades, preço, cliente, vendedor), sem travas por status,
+  exceto: confirmado/faturado sem cliente; quantidade acima do disponível = saldo + o que o próprio pedido já baixou
+  (solicitações não reservam estoque). Editar itens de pedido com baixa estorna e baixa de novo (PEPS).
+  Pedido mínimo do site não vale no admin.
+- Pedidos já confirmados antes da migration ficam sem cliente; o admin vincula manualmente (aviso na tela).
+
+`clientes`: `tipo` (PF/PJ, segue o documento quando informado), `nome` (nome/razão social), `nome_fantasia`,
+`documento` (CPF/CNPJ só dígitos, único quando preenchido), `inscricao_estadual` (número ou ISENTO), `comprador`
+(responsável pelas compras no cliente), `whatsapp` (dígitos, sem 55), `email` (minúsculas), `cidade`, `uf`,
+`endereco`, `vendedor`, `observacoes`, `ativo`, `criado_em`, `atualizado_em`.
+
+`pedidos`: + `cliente_id` (→ clientes, nulo na solicitação), `vendedor`, `origem` (`site`/`admin`). Os dados de
+cliente/contato gravados no pedido continuam sendo o que foi informado naquele dia (o cadastro guarda os atuais).
+
+Sugestão de vínculo (`GET /api/admin/pedidos/:id/sugestoes-clientes`): mesmo CPF/CNPJ, WhatsApp (comparado sem o 55)
+ou e-mail. Rotas: `GET/POST /api/admin/clientes`, `GET/PUT /api/admin/clientes/:id` (ficha com histórico, custo e
+margem), `POST /api/admin/pedidos` (venda manual), `PATCH /api/admin/pedidos/:id` (`status`, `observacoes`,
+`clienteId`, `vendedor`, `itens`), `GET /api/admin/pedidos?fase=solicitacoes|pedidos|cancelados`,
+`GET /api/admin/vendedores`. Serviços: `clientes.service.js`, `pedido-admin.service.js`.
+

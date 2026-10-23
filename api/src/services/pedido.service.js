@@ -47,6 +47,80 @@ async function enfileirarNotificacoes(client, pedidoId, contato) {
   );
 }
 
+/**
+ * Grava cabeçalho (número sequencial + código público sem colisão) e itens. `client` em transação.
+ * linhas: [{ produto, quantidade, precoUnitario }].
+ */
+export async function inserirPedido(
+  client,
+  { idempotencyKey, cliente, contato, valorTotal, observacoes, linhas, clienteId = null, vendedor = '', origem = 'site', status = 'novo' },
+) {
+  const ano = new Date().getFullYear();
+  const { rows: numeroRows } = await client.query('SELECT proximo_numero_pedido($1) AS numero', [ano]);
+  const numero = numeroRows[0].numero;
+
+  // Código público sorteado; em caso raro de colisão, desfaz só o INSERT (savepoint) e sorteia outro.
+  let codigo;
+  let pedidoRows;
+  for (let tentativa = 1; ; tentativa++) {
+    codigo = gerarCodigoPublico(new Date(), randomInt, process.env.FUSO_HORARIO || 'America/Sao_Paulo');
+    await client.query('SAVEPOINT codigo_publico');
+    try {
+      ({ rows: pedidoRows } = await client.query(
+        `INSERT INTO pedidos
+           (numero, codigo_publico, idempotency_key, razao_social, nome_fantasia, cnpj, cidade, uf,
+            contato_nome, contato_email, contato_whatsapp, canal_preferido, valor_total, observacoes,
+            cliente_id, vendedor, origem, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+         RETURNING id`,
+        [
+          numero,
+          codigo,
+          idempotencyKey,
+          cliente.razaoSocial,
+          cliente.nomeFantasia,
+          cliente.cnpj,
+          cliente.cidade,
+          cliente.uf,
+          contato.nome,
+          contato.email,
+          contato.whatsapp,
+          contato.canalPreferido,
+          valorTotal,
+          observacoes,
+          clienteId,
+          vendedor,
+          origem,
+          status,
+        ],
+      ));
+      await client.query('RELEASE SAVEPOINT codigo_publico');
+      break;
+    } catch (err) {
+      if (err.code === '23505' && err.constraint === 'pedidos_codigo_publico_key' && tentativa < 10) {
+        await client.query('ROLLBACK TO SAVEPOINT codigo_publico');
+        continue;
+      }
+      throw err;
+    }
+  }
+  const pedidoId = pedidoRows[0].id;
+  await inserirItens(client, pedidoId, linhas);
+  return { id: pedidoId, numero, codigo };
+}
+
+export async function inserirItens(client, pedidoId, linhas) {
+  for (const { produto, quantidade, precoUnitario } of linhas) {
+    await client.query(
+      `INSERT INTO pedido_itens
+         (pedido_id, sku, quantidade, nome_snapshot, cor_snapshot,
+          imagem_snapshot, unidade_snapshot, preco_unitario_snapshot)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [pedidoId, produto.sku, quantidade, produto.nome, produto.cor, produto.imagem, produto.unidade, precoUnitario],
+    );
+  }
+}
+
 export async function criarPedido({ idempotencyKey, cliente, contato, itens, observacoes, aceite }) {
   if (typeof idempotencyKey !== 'string' || !UUID_REGEX.test(idempotencyKey)) {
     throw new ErroPedido(400, 'DADOS_INVALIDOS', 'idempotencyKey é obrigatório');
@@ -93,60 +167,14 @@ export async function criarPedido({ idempotencyKey, cliente, contato, itens, obs
   try {
     await client.query('BEGIN');
 
-    const ano = new Date().getFullYear();
-    const { rows: numeroRows } = await client.query('SELECT proximo_numero_pedido($1) AS numero', [ano]);
-    const numero = numeroRows[0].numero;
-
-    // Código público sorteado; em caso raro de colisão, desfaz só o INSERT (savepoint) e sorteia outro.
-    let codigo;
-    let pedidoRows;
-    for (let tentativa = 1; ; tentativa++) {
-      codigo = gerarCodigoPublico(new Date(), randomInt, process.env.FUSO_HORARIO || 'America/Sao_Paulo');
-      await client.query('SAVEPOINT codigo_publico');
-      try {
-        ({ rows: pedidoRows } = await client.query(
-          `INSERT INTO pedidos
-             (numero, codigo_publico, idempotency_key, razao_social, nome_fantasia, cnpj, cidade, uf,
-              contato_nome, contato_email, contato_whatsapp, canal_preferido, valor_total, observacoes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-           RETURNING id`,
-          [
-            numero,
-            codigo,
-            idempotencyKey,
-            clienteValido.razaoSocial,
-            clienteValido.nomeFantasia,
-            clienteValido.cnpj,
-            clienteValido.cidade,
-            clienteValido.uf,
-            contatoValido.nome,
-            contatoValido.email,
-            contatoValido.whatsapp,
-            contatoValido.canalPreferido,
-            valorTotal,
-            observacoesValidas || null,
-          ],
-        ));
-        break;
-      } catch (err) {
-        if (err.code === '23505' && err.constraint === 'pedidos_codigo_publico_key' && tentativa < 10) {
-          await client.query('ROLLBACK TO SAVEPOINT codigo_publico');
-          continue;
-        }
-        throw err;
-      }
-    }
-    const pedidoId = pedidoRows[0].id;
-
-    for (const { produto, quantidade } of linhas) {
-      await client.query(
-        `INSERT INTO pedido_itens
-           (pedido_id, sku, quantidade, nome_snapshot, cor_snapshot,
-            imagem_snapshot, unidade_snapshot, preco_unitario_snapshot)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [pedidoId, produto.sku, quantidade, produto.nome, produto.cor, produto.imagem, produto.unidade, produto.preco_unitario],
-      );
-    }
+    const { id: pedidoId, numero, codigo } = await inserirPedido(client, {
+      idempotencyKey,
+      cliente: clienteValido,
+      contato: contatoValido,
+      valorTotal,
+      observacoes: observacoesValidas || null,
+      linhas,
+    });
 
     await enfileirarNotificacoes(client, pedidoId, contatoValido);
 

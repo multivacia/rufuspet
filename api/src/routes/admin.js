@@ -8,7 +8,6 @@ import { normalizarCodigo } from '../services/regras-pedido.js';
 import { ErroEmail, reenviarEmails, situacaoEmail } from '../services/notificacao.service.js';
 import {
   ErroEstoque,
-  atualizarPedidoComEstoque,
   custoDosPedidos,
   excluirEntrada,
   listarFornecedores,
@@ -18,17 +17,46 @@ import {
   registrarBaixaManual,
   registrarEntrada,
 } from '../services/estoque.service.js';
+import {
+  ErroCliente,
+  atualizarCliente,
+  buscarCliente,
+  criarCliente,
+  listarClientes,
+  listarVendedores,
+  sugerirClientesParaPedido,
+} from '../services/clientes.service.js';
+import { ErroPedidoAdmin, atualizarPedidoAdmin, criarPedidoAdmin } from '../services/pedido-admin.service.js';
 
 export const adminRouter = Router();
 
 const CAMPOS_PRODUTO_EDITAVEIS = ['preco_unitario', 'ativo'];
 
-const STATUS_PEDIDO_VALIDOS = ['novo', 'confirmado', 'faturado', 'cancelado'];
+// Fases da tela de Pedidos: 'novo' é a solicitação do site; confirmado/faturado é o pedido de verdade.
+const FASES = {
+  solicitacoes: ['novo'],
+  pedidos: ['confirmado', 'faturado'],
+  cancelados: ['cancelado'],
+};
 
 function responderErroEstoque(res, err) {
   return res.status(err.status).json({
     erro: { codigo: err.codigo, mensagem: err.message, campo: err.campo, faltas: err.faltas },
   });
+}
+
+/** Erros de regra (estoque, cliente, pedido) → resposta JSON; outros seguem para o handler geral. */
+function erroDeRegra(res, err) {
+  if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
+  if (err instanceof ErroCliente || err instanceof ErroPedidoAdmin) {
+    return res.status(err.status).json({ erro: { codigo: err.codigo, mensagem: err.message, campo: err.campo } });
+  }
+  return null;
+}
+
+function idValido(bruto) {
+  const id = Number.parseInt(bruto, 10);
+  return Number.isInteger(id) && id > 0 && String(id) === String(bruto).trim() ? id : null;
 }
 
 function montarUpdate(body, camposPermitidos) {
@@ -120,24 +148,41 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
     const porPagina = Math.min(50, Math.max(1, parseInt(req.query.porPagina, 10) || 20));
     const offset = (pagina - 1) * porPagina;
 
-    // Busca por código do cliente (ignora hífen/espaço/caixa), número interno, nome ou razão social.
+    // Busca por código do cliente (ignora hífen/espaço/caixa), número interno, nome, razão social ou cliente vinculado.
     const busca = String(req.query.busca ?? '').trim().slice(0, 100);
-    const filtro = busca
-      ? `WHERE regexp_replace(codigo_publico, '[^A-Z0-9]', '', 'g') LIKE '%' || $3 || '%'
-            OR numero ILIKE '%' || $4 || '%'
-            OR contato_nome ILIKE '%' || $4 || '%'
-            OR razao_social ILIKE '%' || $4 || '%'
-            OR nome_fantasia ILIKE '%' || $4 || '%'`
-      : '';
-    const paramsBusca = busca ? [normalizarCodigo(busca) || '#', busca.replace(/[%_\\]/g, '\\$&')] : [];
+    const condicoes = [];
+    const params = [];
+    if (busca) {
+      params.push(normalizarCodigo(busca) || '#', busca.replace(/[%_\\]/g, '\\$&'));
+      const c = `$${params.length - 1}`;
+      const t = `$${params.length}`;
+      condicoes.push(`(regexp_replace(p.codigo_publico, '[^A-Z0-9]', '', 'g') LIKE '%' || ${c} || '%'
+            OR p.numero ILIKE '%' || ${t} || '%' OR p.contato_nome ILIKE '%' || ${t} || '%'
+            OR p.razao_social ILIKE '%' || ${t} || '%' OR p.nome_fantasia ILIKE '%' || ${t} || '%'
+            OR cl.nome ILIKE '%' || ${t} || '%' OR cl.nome_fantasia ILIKE '%' || ${t} || '%')`);
+    }
+    const fase = FASES[req.query.fase];
+    if (fase) {
+      params.push(fase);
+      condicoes.push(`p.status = ANY($${params.length})`);
+    }
+    const where = condicoes.length ? `WHERE ${condicoes.join(' AND ')}` : '';
 
     const { rows: pedidos } = await pool.query(
-      `SELECT * FROM pedidos ${filtro} ORDER BY criado_em DESC LIMIT $1 OFFSET $2`,
-      [porPagina, offset, ...paramsBusca],
+      `SELECT p.*, cl.nome AS cliente_nome, cl.nome_fantasia AS cliente_nome_fantasia
+         FROM pedidos p LEFT JOIN clientes cl ON cl.id = p.cliente_id
+        ${where} ORDER BY p.criado_em DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, porPagina, offset],
     );
     const { rows: totalRows } = await pool.query(
-      `SELECT count(*)::int AS total FROM pedidos ${filtro.replaceAll('$3', '$1').replaceAll('$4', '$2')}`,
-      paramsBusca,
+      `SELECT count(*)::int AS total FROM pedidos p LEFT JOIN clientes cl ON cl.id = p.cliente_id ${where}`,
+      params,
+    );
+    const { rows: contagem } = await pool.query(
+      `SELECT count(*) FILTER (WHERE status = 'novo')::int AS solicitacoes,
+              count(*) FILTER (WHERE status IN ('confirmado', 'faturado'))::int AS pedidos,
+              count(*) FILTER (WHERE status IN ('confirmado', 'faturado') AND cliente_id IS NULL)::int AS sem_cliente
+         FROM pedidos`,
     );
 
     const ids = pedidos.map((p) => p.id);
@@ -171,6 +216,7 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
       porPagina,
       total: totalRows[0].total,
       emailConfigurado: situacaoEmail().configurado,
+      contagem: contagem[0],
       pedidos: pedidos.map((p) => ({
         ...p,
         itens: itensPorPedido.get(p.id) ?? [],
@@ -185,33 +231,82 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
 
 adminRouter.patch('/admin/pedidos/:id', autenticarAdmin, async (req, res, next) => {
   try {
-    if (
-      Object.prototype.hasOwnProperty.call(req.body ?? {}, 'status') &&
-      !STATUS_PEDIDO_VALIDOS.includes(req.body.status)
-    ) {
-      return res.status(400).json({
-        erro: { codigo: 'DADOS_INVALIDOS', mensagem: `status deve ser um de: ${STATUS_PEDIDO_VALIDOS.join(', ')}` },
-      });
-    }
-
-    const updates = montarUpdate(req.body, ['status', 'observacoes']);
-    const campos = Object.keys(updates);
-    if (campos.length === 0) {
-      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Nenhum campo editável informado' } });
-    }
-
-    const id = Number.parseInt(req.params.id, 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Pedido inválido' } });
-    }
-
-    const pedido = await atualizarPedidoComEstoque(id, updates, req.admin.email);
-    if (!pedido) {
-      return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pedido não encontrado' } });
-    }
+    const id = idValido(req.params.id);
+    if (!id) return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Pedido inválido' } });
+    const pedido = await atualizarPedidoAdmin(id, req.body, req.admin.email);
+    if (!pedido) return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pedido não encontrado' } });
     res.json(pedido);
   } catch (err) {
-    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
+    if (!erroDeRegra(res, err)) next(err);
+  }
+});
+
+adminRouter.post('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.status(201).json(await criarPedidoAdmin(req.body, req.admin.email));
+  } catch (err) {
+    if (!erroDeRegra(res, err)) next(err);
+  }
+});
+
+adminRouter.get('/admin/pedidos/:id/sugestoes-clientes', autenticarAdmin, async (req, res, next) => {
+  try {
+    const id = idValido(req.params.id);
+    if (!id) return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Pedido inválido' } });
+    const clientes = await sugerirClientesParaPedido(id);
+    if (!clientes) return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pedido não encontrado' } });
+    res.json({ clientes });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------- clientes
+
+adminRouter.get('/admin/clientes', autenticarAdmin, async (req, res, next) => {
+  try {
+    const pagina = Math.max(1, parseInt(req.query.pagina, 10) || 1);
+    const porPagina = Math.min(100, Math.max(1, parseInt(req.query.porPagina, 10) || 30));
+    res.json(await listarClientes({ busca: req.query.busca ?? '', pagina, porPagina }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.post('/admin/clientes', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.status(201).json(await criarCliente(req.body));
+  } catch (err) {
+    if (!erroDeRegra(res, err)) next(err);
+  }
+});
+
+adminRouter.get('/admin/clientes/:id', autenticarAdmin, async (req, res, next) => {
+  try {
+    const id = idValido(req.params.id);
+    const ficha = id && (await buscarCliente(id));
+    if (!ficha) return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Cliente não encontrado' } });
+    res.json(ficha);
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.put('/admin/clientes/:id', autenticarAdmin, async (req, res, next) => {
+  try {
+    const id = idValido(req.params.id);
+    const cliente = id && (await atualizarCliente(id, req.body));
+    if (!cliente) return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Cliente não encontrado' } });
+    res.json(cliente);
+  } catch (err) {
+    if (!erroDeRegra(res, err)) next(err);
+  }
+});
+
+adminRouter.get('/admin/vendedores', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.json({ vendedores: await listarVendedores() });
+  } catch (err) {
     next(err);
   }
 });
@@ -293,8 +388,7 @@ adminRouter.post('/admin/estoque/entradas', autenticarAdmin, async (req, res, ne
   try {
     res.status(201).json(await registrarEntrada(req.body, req.admin.email));
   } catch (err) {
-    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
-    next(err);
+    if (!erroDeRegra(res, err)) next(err);
   }
 });
 
@@ -306,8 +400,7 @@ adminRouter.delete('/admin/estoque/entradas/:id', autenticarAdmin, async (req, r
     }
     res.json(await excluirEntrada(id, req.admin.email));
   } catch (err) {
-    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
-    next(err);
+    if (!erroDeRegra(res, err)) next(err);
   }
 });
 
@@ -315,7 +408,6 @@ adminRouter.post('/admin/estoque/baixas', autenticarAdmin, async (req, res, next
   try {
     res.status(201).json(await registrarBaixaManual(req.body, req.admin.email));
   } catch (err) {
-    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
-    next(err);
+    if (!erroDeRegra(res, err)) next(err);
   }
 });

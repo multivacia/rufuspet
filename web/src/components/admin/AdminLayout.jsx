@@ -47,6 +47,9 @@ export default function AdminLayout() {
             <NavLink to="/admin/pedidos" className={({ isActive }) => (isActive ? 'on' : '')}>
               Pedidos
             </NavLink>
+            <NavLink to="/admin/clientes" className={({ isActive }) => (isActive ? 'on' : '')}>
+              Clientes
+            </NavLink>
             <NavLink to="/admin/estoque" className={({ isActive }) => (isActive ? 'on' : '')}>
               Estoque
             </NavLink>

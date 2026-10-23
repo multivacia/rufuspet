@@ -7,9 +7,9 @@
 - Repositório `multivacia/rufuspet` (público). Fluxo: trabalhar na **`develop`**, PR → **`main`** com aprovação
   explícita do usuário, deploy no VPS a partir do `main`.
 - `main` = `35b65f3` (PR #7). Em produção no VPS (o usuário roda o deploy; esta sessão não tem SSH).
-- `develop` à frente do `main`: **controle de estoque PEPS no admin** (migrations 008–009), validado, sem PR ainda.
-- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–009, runner próprio); `web/` React 19 + Vite.
-  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (36) · `cd web && npm test` (7).
+- `develop` à frente do `main`: **estoque PEPS** (008–009) e **clientes + ciclo solicitação → pedido** (010), validados, sem PR ainda.
+- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–010, runner próprio); `web/` React 19 + Vite.
+  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (40) · `cd web && npm test` (7).
 
 ## Produção (VPS Ubuntu 22.04, IP 143.95.222.99, SSH porta 22022, usuário `deploy` com sudo)
 - **Compartilha o servidor com o SGP** (`sgp-api` no PM2, site nginx `sgp.multivacia.com`, `/opt/sgp`). Não mexer no SGP.
@@ -33,6 +33,14 @@ Loja (dados do rodapé, e-mails internos, pedido mínimo).
   nota fiscal/documento (opcional), observação. Sem campo de origem.
 - Sem alerta de estoque baixo (decisão do usuário, por enquanto).
 - Próxima ideia do usuário: aba de frete/custo de importação para calcular o custo unitário (ainda não especificada).
+
+## Clientes e pedidos (develop, 2026-10-23)
+- Site gera **solicitação** (`novo`); vira pedido ao confirmar no admin. Confirmar exige cliente (ou "Venda balcão").
+- Histórico do cliente = pedidos confirmados/faturados vinculados (base única). Venda fora do site: Novo pedido no admin.
+- Cliente: tipo, nome/razão social, fantasia, CPF/CNPJ (único), IE, comprador responsável, WhatsApp, e-mail, cidade/UF,
+  endereço, vendedor, observações, ativo. Vendedor também no pedido (herda do cliente). Texto livre.
+- Admin edita pedido sem travas; estoque limita ao disponível (saldo + baixa do próprio pedido); solicitações não reservam.
+- Pedidos confirmados antes da 010 ficam sem cliente: usuário vincula manualmente após o deploy.
 
 ## E-mail em produção (confirmado pelo usuário em 2026-10-23)
 - Remetente e contato da Loja = `vendas@rufuspet.com.br` (`.env` do VPS + admin → Loja); confirmação ao cliente com

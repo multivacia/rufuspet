@@ -331,6 +331,34 @@
   sem erros de console.
 - Branch `develop` (não publicada).
 
+## Atualização 2026-10-23 — clientes, vendedor e ciclo Solicitação → Pedido
+- Solução fechada com o usuário antes de implementar:
+  - O que chega do site é solicitação (`novo`); vira pedido ao confirmar no admin (ele confirmou que a estratégia
+    serve para MEI atendendo MEIs). Uma base só: histórico do cliente = pedidos confirmados/faturados.
+  - Confirmar exige cliente ("tem que ter lastro"), nem que seja "Venda balcão". Vendas fora do site: Novo pedido no
+    admin. Pedidos confirmados antigos: vínculo manual.
+  - Cliente com inscrição estadual e comprador responsável; vendedor no cliente e no pedido (herda), texto livre.
+  - Admin edita pedido a qualquer momento, sem travas; estoque: não passar do disponível (saldo + baixa do próprio
+    pedido); solicitações não reservam estoque.
+- `migrations/010_clientes.sql`; `services/clientes.service.js` (cadastro, lista com resumo, ficha com histórico/custo/
+  margem, sugestões, vendedores); `services/pedido-admin.service.js` (PATCH com cliente/vendedor/itens/status em uma
+  transação, venda manual); `pedido.service.js` com `inserirPedido`/`inserirItens` compartilhados; rotas novas.
+- Web: Pedidos com abas Solicitações/Pedidos/Cancelados/Todos e contadores, aviso de confirmados sem cliente, coluna
+  Cliente com link, painel "Vincular cliente" (sugestões, busca, cadastrar com os dados da solicitação, Venda balcão)
+  aberto automaticamente ao confirmar sem cliente, vendedor com sugestão, editor de itens com disponível/estoque;
+  **Novo pedido**; aba **Clientes** (lista com compras/total/última compra) e ficha (cadastro + resumo + histórico).
+- Validação: API `npm test` 40/40 (2×; novos: cadastro/validações/documento único/busca; confirmar exige cliente,
+  herança de vendedor, sugestões; edição de itens livre na solicitação e limitada ao disponível com baixa, PEPS
+  reprocessado; venda manual, fases e ficha). Web 7/7; build ok. Migration 010 aplicada sobre base com pedido
+  confirmado antigo (ficou sem cliente, aviso exibido). E2E Playwright: cadastro com CNPJ inválido recusado e campo
+  marcado; confirmar solicitação abriu o vínculo com sugestão "bate por CPF/CNPJ, WhatsApp"; vínculo + confirmação
+  juntos; vendedor herdado; edição 99 un. bloqueada ("pedido 99, saldo 20"), 6 un. a R$ 10,50 ok (custo R$ 12,00);
+  pedido antigo → Venda balcão (aviso sumiu); Novo pedido com vendedor herdado e preço negociado; lista e ficha com
+  2 compras, R$ 80,00, margem R$ 64,00 (80,0%); mobile 390px sem rolagem lateral. Console: só 400/409 esperados.
+- Corrigido durante o teste: CNPJ sem máscara na ficha; etiqueta "bate por…" colada no texto.
+- Branch `develop` (não publicada). Deploy: `atualizar.sh` aplica 008–010 (só criam tabelas/colunas e o cliente
+  "Venda balcão"; não alteram dados existentes).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

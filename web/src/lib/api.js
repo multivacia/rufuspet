@@ -56,9 +56,10 @@ export function adminAtualizarProduto(sku, campos) {
   return requisitar(`/admin/produtos/${encodeURIComponent(sku)}`, { method: 'PATCH', body: JSON.stringify(campos) });
 }
 
-export function adminListarPedidos({ pagina = 1, porPagina = 20, busca = '' } = {}) {
+export function adminListarPedidos({ pagina = 1, porPagina = 20, busca = '', fase = '' } = {}) {
   const params = new URLSearchParams({ pagina, porPagina });
   if (busca) params.set('busca', busca);
+  if (fase) params.set('fase', fase);
   return requisitar(`/admin/pedidos?${params}`);
 }
 
@@ -96,6 +97,36 @@ export function adminEstoqueExcluirEntrada(id) {
 
 export function adminEstoqueBaixa(campos) {
   return requisitar('/admin/estoque/baixas', { method: 'POST', body: JSON.stringify(campos) });
+}
+
+export function adminCriarPedido(campos) {
+  return requisitar('/admin/pedidos', { method: 'POST', body: JSON.stringify(campos) });
+}
+
+export function adminSugestoesClientes(pedidoId) {
+  return requisitar(`/admin/pedidos/${pedidoId}/sugestoes-clientes`);
+}
+
+export function adminListarClientes({ busca = '', pagina = 1, porPagina = 30 } = {}) {
+  const params = new URLSearchParams({ pagina, porPagina });
+  if (busca) params.set('busca', busca);
+  return requisitar(`/admin/clientes?${params}`);
+}
+
+export function adminBuscarCliente(id) {
+  return requisitar(`/admin/clientes/${id}`);
+}
+
+export function adminCriarCliente(campos) {
+  return requisitar('/admin/clientes', { method: 'POST', body: JSON.stringify(campos) });
+}
+
+export function adminAtualizarCliente(id, campos) {
+  return requisitar(`/admin/clientes/${id}`, { method: 'PUT', body: JSON.stringify(campos) });
+}
+
+export function adminVendedores() {
+  return requisitar('/admin/vendedores');
 }
 
 // Achata a resposta agrupada de GET /api/produtos numa lista de SKUs
