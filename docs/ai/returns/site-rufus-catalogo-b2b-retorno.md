@@ -280,6 +280,12 @@
   "✓ 2 e-mail(s) enviado(s)" e os dois e-mails chegaram ao servidor SMTP de teste; sem erros JS.
 - Branch `develop` (não publicada).
 
+## Atualização 2026-10-23 — PR #7 publicado no main, DBeaver e encerramento desta sessão
+- PR #7 (reenviar e-mails) mesclado: `35b65f3`. Deploy no VPS a cargo do usuário.
+- Fornecida consulta SQL de pedidos + situação dos e-mails; DBeaver configurado via túnel SSH (porta 22022) com
+  usuário de leitura `rufus_leitura`; conferido que o PostgreSQL escuta só em 127.0.0.1/::1 (não exposto).
+- Contexto da sessão perto do limite: criado `docs/ai/context/SESSION_CHECKPOINT.md` para continuar em novo chat.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 
