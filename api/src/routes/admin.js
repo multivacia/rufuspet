@@ -5,6 +5,7 @@ import { autenticarAdmin, COOKIE_ADMIN } from '../middleware/auth.js';
 import { adminLoginRateLimit } from '../middleware/ratelimit.js';
 import { ErroLoja, atualizarLoja, buscarLoja } from '../services/loja.service.js';
 import { normalizarCodigo } from '../services/regras-pedido.js';
+import { ErroEmail, reenviarEmails, situacaoEmail } from '../services/notificacao.service.js';
 
 export const adminRouter = Router();
 
@@ -126,6 +127,19 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
       ? await pool.query('SELECT * FROM pedido_itens WHERE pedido_id = ANY($1) ORDER BY id', [ids])
       : { rows: [] };
 
+    const { rows: emails } = ids.length
+      ? await pool.query(
+          `SELECT id, pedido_id, tipo, destino, status, tentativas, ultimo_erro, enviado_em
+             FROM notificacoes WHERE pedido_id = ANY($1) AND canal = 'email' ORDER BY id`,
+          [ids],
+        )
+      : { rows: [] };
+    const emailsPorPedido = new Map();
+    for (const e of emails) {
+      if (!emailsPorPedido.has(e.pedido_id)) emailsPorPedido.set(e.pedido_id, []);
+      emailsPorPedido.get(e.pedido_id).push(e);
+    }
+
     const itensPorPedido = new Map();
     for (const item of itens) {
       if (!itensPorPedido.has(item.pedido_id)) itensPorPedido.set(item.pedido_id, []);
@@ -136,7 +150,8 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
       pagina,
       porPagina,
       total: totalRows[0].total,
-      pedidos: pedidos.map((p) => ({ ...p, itens: itensPorPedido.get(p.id) ?? [] })),
+      emailConfigurado: situacaoEmail().configurado,
+      pedidos: pedidos.map((p) => ({ ...p, itens: itensPorPedido.get(p.id) ?? [], emails: emailsPorPedido.get(p.id) ?? [] })),
     });
   } catch (err) {
     next(err);
@@ -191,6 +206,23 @@ adminRouter.put('/admin/loja', autenticarAdmin, async (req, res, next) => {
   } catch (err) {
     if (err instanceof ErroLoja) {
       return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: err.message, campo: err.campo } });
+    }
+    next(err);
+  }
+});
+
+adminRouter.post('/admin/pedidos/:id/reenviar-emails', autenticarAdmin, async (req, res, next) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Pedido inválido' } });
+    }
+    const emails = await reenviarEmails(id);
+    if (!emails) return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pedido não encontrado' } });
+    res.json({ emails });
+  } catch (err) {
+    if (err instanceof ErroEmail) {
+      return res.status(409).json({ erro: { codigo: 'EMAIL_NAO_CONFIGURADO', mensagem: err.message } });
     }
     next(err);
   }

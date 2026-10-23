@@ -249,6 +249,37 @@
   `numero`, página sem "RFS-", busca "rf 2010 tw7" encontra o pedido; WhatsApp do admin com o código; sem erros JS.
 - Branch `develop` (não publicada; `main` e VPS sem esta mudança). No deploy: `atualizar.sh` aplica a migration 007.
 
+## Atualização 2026-10-21 — publicação no VPS (PRs #5 e #6)
+- PR #5 (dados da empresa opcionais + pessoa física) e PR #6 (código público RF-DDMM-XXX) mesclados no `main`
+  (`31f5ffd`, `5deb5e2`).
+- VPS (executado pelo usuário): `git pull --ff-only` (6b8e18a → 5deb5e2, já com o `atualizar.sh` corrigido) e
+  `atualizar.sh` → backup `~/backups/rufuspet/rufus-20261021-021525.sql.gz`, `aplicada: 007_codigo_publico.sql`,
+  build ok, `rufus-api` reiniciado, `/health` ok; `sgp-api` online. Sem 403 desta vez (correção de permissões ativa).
+- Pendente do usuário: conferir em produção a confirmação com "Código do pedido: RF-…", códigos dos pedidos antigos
+  e busca no admin.
+
+## Atualização 2026-10-23 — e-mail não chegou em produção + botão "Reenviar e-mails"
+- Sintoma: pedido RF-2310-WHV gravado em produção, sem e-mail. Diagnóstico (consulta no VPS pelo usuário): as
+  notificações internas falharam com `530-5.7.0 Authentication Required` — o `.env` do VPS tinha `SMTP_HOST` (deixado
+  pelo instalador) mas `SMTP_USER`/`SMTP_PASS` vazios, e a API tentava enviar sem login. Orientado preencher o `.env`,
+  reiniciar e reenviar.
+- Pedido do usuário: botão de reenviar e-mail.
+- API: `situacaoEmail()` (configurado só com usuário e senha, salvo SMTP local; `SMTP_HOST=json` para teste), sem
+  tentar enviar quando não configurado (log com o motivo); `reenviarEmails()` recria o aviso interno para os
+  destinatários atuais e reenvia a confirmação ao cliente (se preferiu e-mail), de forma síncrona;
+  `POST /api/admin/pedidos/:id/reenviar-emails` (409 com o motivo se SMTP não configurado); `GET /api/admin/pedidos`
+  traz `emails` de cada pedido e `emailConfigurado`. Limite de login do admin configurável (`ADMIN_LOGIN_LIMITE`).
+- Web (admin → Pedidos): alerta "⚠ e-mail falhou" na linha, seção "E-mails" no detalhe (destino, tipo, situação,
+  erro/data), botão "Reenviar e-mails" com resultado, aviso no topo quando o SMTP não está configurado.
+- Incidente durante o desenvolvimento: uma substituição de trecho removeu sem querer `htmlPedido`/`montarEmail` do
+  `notificacao.service.js`; detectado pelos testes (import falhou), arquivo restaurado do Git e a mudança reaplicada
+  só no trecho certo (diff final só com acréscimos).
+- Validação: API `npm test` 32/32 (novo: reenvio — sem SMTP 409, Gmail sem usuário 409, envio com destinatários atuais
+  e cliente, falha com erro registrado, 404/401); web `npm test` 6/6; build ok; E2E: com SMTP inalcançável o pedido
+  RF-2310-NDQ aparece com "⚠ e-mail falhou" e o erro; após reiniciar com SMTP funcionando, "Reenviar e-mails" →
+  "✓ 2 e-mail(s) enviado(s)" e os dois e-mails chegaram ao servidor SMTP de teste; sem erros JS.
+- Branch `develop` (não publicada).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

@@ -21,6 +21,7 @@ before(async () => {
   process.env.PEDIDOS_PASTA = pastaPedidos;
   process.env.EMAILS_INTERNOS = 'loja@exemplo.com';
   process.env.PEDIDOS_LIMITE_POR_HORA = '1000';
+  process.env.ADMIN_LOGIN_LIMITE = '1000';
   delete process.env.SMTP_HOST;
   execFileSync('node', ['migrations/run.js'], { env: process.env, stdio: 'pipe' });
   ({ pool } = await import('../src/db.js'));
@@ -321,4 +322,57 @@ test('código público: único, com a data do dia, e busca no admin ignorando h�
   assert.equal((await buscar('RFS-')).total, 5);
   assert.equal((await buscar('não existe')).total, 0);
   assert.equal((await buscar('100%')).total, 0);
+});
+
+test('admin: reenviar e-mails do pedido', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const r = await post('/api/pedidos', pedidoValido({ contato: { ...pedidoValido().contato, canalPreferido: 'email' } }));
+  const { rows: [{ id }] } = await pool.query('SELECT id FROM pedidos WHERE codigo_publico = $1', [r.corpo.codigo]);
+  const reenviar = async () => {
+    const resp = await fetch(`${base}/api/admin/pedidos/${id}/reenviar-emails`, { method: 'POST', headers: { cookie } });
+    return { status: resp.status, corpo: await resp.json() };
+  };
+  const smtpOriginal = { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
+  try {
+    // Sem SMTP: recusa com motivo, sem tentar enviar.
+    let res = await reenviar();
+    assert.equal(res.status, 409);
+    assert.match(res.corpo.erro.mensagem, /SMTP_HOST vazio/);
+
+    // Gmail sem usuário/senha (o caso real do erro 530): também recusa.
+    process.env.SMTP_HOST = 'smtp.gmail.com';
+    res = await reenviar();
+    assert.equal(res.status, 409);
+    assert.match(res.corpo.erro.mensagem, /SMTP_USER ou SMTP_PASS vazio/);
+
+    // Configurado: envia para os destinatários ATUAIS do admin + confirmação ao cliente.
+    await fetch(`${base}/api/admin/loja`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ emailsInternos: 'a@rufus.com, b@rufus.com' }),
+    });
+    process.env.SMTP_HOST = 'json';
+    res = await reenviar();
+    assert.equal(res.status, 200);
+    assert.deepEqual(
+      res.corpo.emails.map((e) => [e.tipo, e.destino, e.status]).sort(),
+      [['cliente', 'maria@exemplo.com', 'enviado'], ['interno', 'a@rufus.com', 'enviado'], ['interno', 'b@rufus.com', 'enviado']],
+    );
+
+    // Servidor fora do ar: falha registrada com o erro, e a lista do admin mostra a situação.
+    process.env.SMTP_HOST = '127.0.0.1';
+    process.env.SMTP_PORT = '1';
+    res = await reenviar();
+    assert.equal(res.status, 200);
+    assert.ok(res.corpo.emails.every((e) => e.status === 'falhou' && e.ultimo_erro), JSON.stringify(res.corpo.emails));
+    const lista = await (await fetch(`${base}/api/admin/pedidos`, { headers: { cookie } })).json();
+    assert.equal(lista.emailConfigurado, true);
+    assert.equal(lista.pedidos.find((p) => p.id === id).emails.length, 3);
+
+    assert.equal((await fetch(`${base}/api/admin/pedidos/999999/reenviar-emails`, { method: 'POST', headers: { cookie } })).status, 404);
+    assert.equal((await fetch(`${base}/api/admin/pedidos/${id}/reenviar-emails`, { method: 'POST' })).status, 401);
+  } finally {
+    for (const [k, v] of Object.entries({ SMTP_HOST: smtpOriginal.host, SMTP_PORT: smtpOriginal.port, SMTP_USER: smtpOriginal.user, SMTP_PASS: smtpOriginal.pass })) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
 });

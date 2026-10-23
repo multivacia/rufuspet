@@ -3,7 +3,7 @@ import path from 'node:path';
 import nodemailer from 'nodemailer';
 import { pool } from '../db.js';
 import { formatarDocumento } from './regras-pedido.js';
-import { buscarLoja } from './loja.service.js';
+import { buscarLoja, destinatariosInternos } from './loja.service.js';
 
 // Depois do commit do pedido: grava o TXT do pedido e envia as notificações por e-mail
 // (se houver SMTP configurado). WhatsApp ainda não tem envio: as notificações desse canal
@@ -77,14 +77,33 @@ export async function gravarTxt(pedido, itens) {
   return arquivo;
 }
 
+export class ErroEmail extends Error {}
+
+const HOSTS_LOCAIS = new Set(['localhost', '127.0.0.1', '::1']);
+
+/**
+ * Diz se o envio de e-mail está configurado. Exige usuário e senha, exceto para um servidor SMTP local
+ * (relay sem autenticação). SMTP_HOST=json só registra o e-mail no log (testes/desenvolvimento).
+ */
+export function situacaoEmail() {
+  const host = process.env.SMTP_HOST?.trim();
+  if (!host) return { configurado: false, motivo: 'SMTP_HOST vazio no .env da API' };
+  if (host === 'json' || HOSTS_LOCAIS.has(host)) return { configurado: true };
+  if (!process.env.SMTP_USER?.trim() || !process.env.SMTP_PASS?.trim()) {
+    return { configurado: false, motivo: 'SMTP_USER ou SMTP_PASS vazio no .env da API' };
+  }
+  return { configurado: true };
+}
+
 function criarTransporte() {
-  if (!process.env.SMTP_HOST) return null;
+  if (!situacaoEmail().configurado) return null;
+  if (process.env.SMTP_HOST.trim() === 'json') return nodemailer.createTransport({ jsonTransport: true });
   const port = Number(process.env.SMTP_PORT || 587);
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: process.env.SMTP_HOST.trim(),
     port,
     secure: port === 465,
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+    auth: process.env.SMTP_USER?.trim() ? { user: process.env.SMTP_USER.trim(), pass: process.env.SMTP_PASS } : undefined,
   });
 }
 
@@ -193,7 +212,10 @@ function montarEmail(notificacao, pedido, itens, texto, loja) {
 
 async function enviarEmails(pedido, itens, texto) {
   const transporte = criarTransporte();
-  if (!transporte) return;
+  if (!transporte) {
+    console.warn(`pedido ${pedido.numero}: e-mail não enviado — ${situacaoEmail().motivo}`);
+    return;
+  }
   const { rows: pendentes } = await pool.query(
     `SELECT * FROM notificacoes WHERE pedido_id = $1 AND canal = 'email' AND status IN ('pendente', 'falhou') ORDER BY id`,
     [pedido.id],
@@ -232,4 +254,52 @@ export async function processarPedido(pedidoId) {
     console.error(`falha ao gravar TXT do pedido ${pedido.numero}:`, err);
   }
   await enviarEmails(pedido, itens, texto);
+}
+
+/** Situação dos e-mails de um pedido (para o admin). */
+export async function emailsDoPedido(pedidoId) {
+  const { rows } = await pool.query(
+    `SELECT id, tipo, destino, status, tentativas, ultimo_erro, enviado_em
+       FROM notificacoes WHERE pedido_id = $1 AND canal = 'email' ORDER BY id`,
+    [pedidoId],
+  );
+  return rows;
+}
+
+/**
+ * Reenvia os e-mails do pedido (admin): aviso interno para os destinatários ATUAIS (admin → Loja, ou
+ * EMAILS_INTERNOS) e a confirmação ao cliente, se ele escolheu e-mail. Envia na hora e devolve a situação.
+ */
+export async function reenviarEmails(pedidoId) {
+  const situacao = situacaoEmail();
+  if (!situacao.configurado) throw new ErroEmail(`E-mail não configurado no servidor (${situacao.motivo}).`);
+  const { pedido, itens } = await carregarPedido(pedidoId);
+  if (!pedido) return null;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Interno: troca a lista antiga pelos destinatários atuais.
+    await client.query(`DELETE FROM notificacoes WHERE pedido_id = $1 AND canal = 'email' AND tipo = 'interno'`, [pedido.id]);
+    for (const destino of await destinatariosInternos(client)) {
+      await client.query(
+        `INSERT INTO notificacoes (pedido_id, canal, tipo, destino) VALUES ($1, 'email', 'interno', $2)`,
+        [pedido.id, destino],
+      );
+    }
+    // Cliente (se preferiu e-mail): marca para enviar de novo.
+    await client.query(
+      `UPDATE notificacoes SET status = 'pendente' WHERE pedido_id = $1 AND canal = 'email' AND tipo = 'cliente'`,
+      [pedido.id],
+    );
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  await enviarEmails(pedido, itens, textoPedido(pedido, itens));
+  return emailsDoPedido(pedido.id);
 }

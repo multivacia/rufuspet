@@ -35,7 +35,8 @@ npm run dev   # http://localhost:5173
   grava um **TXT** do pedido em `PEDIDOS_PASTA` e envia e-mail (HTML + texto) para os destinatários definidos no admin → **Loja** (ou `EMAILS_INTERNOS`
   do `.env`, se vazio), quando há SMTP;
   o cliente recebe confirmação por e-mail quando escolhe e-mail como contato preferido.
-- **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status,
+- **Admin** (`/admin`): login, preço unitário e ativo/inativo dos produtos, lista de pedidos com status, situação dos
+  e-mails de cada pedido e botão **Reenviar e-mails**,
   e **Loja**: dados do rodapé e dos e-mails (razão social, CNPJ, telefone, WhatsApp etc.), e-mails que recebem
   os pedidos e **pedido mínimo** (0 = sem mínimo; pedidos abaixo são recusados pela API).
 - **WhatsApp (links wa.me, sem API):** na confirmação, o cliente pode enviar o pedido pelo WhatsApp da loja
