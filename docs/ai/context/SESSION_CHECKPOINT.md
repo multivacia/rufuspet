@@ -44,4 +44,6 @@ Loja (dados do rodapé, e-mails internos, pedido mínimo).
 
 ## Preferências do usuário
 - Português; respostas curtas; em diagnóstico, mandar só o próximo comando (não a sequência inteira).
+- Novas tarefas: fechar a solução com o usuário (regras, modelo, telas, decisões técnicas) e só implementar após o
+  "ok" dele — não começar a codificar logo depois das perguntas.
 - Segredos (senhas, senha de app) nunca no chat — o usuário digita no servidor.
