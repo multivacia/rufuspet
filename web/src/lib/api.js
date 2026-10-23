@@ -62,6 +62,10 @@ export function adminListarPedidos({ pagina = 1, porPagina = 20, busca = '' } = 
   return requisitar(`/admin/pedidos?${params}`);
 }
 
+export function adminReenviarEmails(id) {
+  return requisitar(`/admin/pedidos/${id}/reenviar-emails`, { method: 'POST' });
+}
+
 export function adminAtualizarPedido(id, campos) {
   return requisitar(`/admin/pedidos/${id}`, { method: 'PATCH', body: JSON.stringify(campos) });
 }

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { adminListarPedidos, adminAtualizarPedido } from '../../lib/api.js';
+import { adminListarPedidos, adminAtualizarPedido, adminReenviarEmails } from '../../lib/api.js';
 import { brl } from '../../lib/formato.js';
 import { useLoja } from '../../lib/dadosLoja.jsx';
 import { linkWhatsApp, mensagemLojaParaCliente } from '../../lib/whatsapp.js';
@@ -25,6 +25,7 @@ export default function Pedidos() {
   const [expandido, setExpandido] = useState(null);
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState({});
+  const [reenvio, setReenvio] = useState({}); // por pedido: { enviando, mensagem, erro }
 
   useEffect(() => {
     adminListarPedidos({ pagina, busca: buscaAplicada })
@@ -45,6 +46,23 @@ export default function Pedidos() {
       setErro(err.message);
     } finally {
       setSalvando((atual) => ({ ...atual, [pedido.id]: false }));
+    }
+  }
+
+  async function reenviar(pedido) {
+    setReenvio((r) => ({ ...r, [pedido.id]: { enviando: true } }));
+    try {
+      const { emails } = await adminReenviarEmails(pedido.id);
+      setDados((atual) => ({ ...atual, pedidos: atual.pedidos.map((p) => (p.id === pedido.id ? { ...p, emails } : p)) }));
+      const falhas = emails.filter((e) => e.status === 'falhou').length;
+      setReenvio((r) => ({
+        ...r,
+        [pedido.id]: falhas
+          ? { erro: `${falhas} e-mail(s) falharam — veja o motivo abaixo.` }
+          : { mensagem: emails.length ? `✓ ${emails.length} e-mail(s) enviado(s).` : 'Nenhum destinatário configurado (admin → Loja).' },
+      }));
+    } catch (err) {
+      setReenvio((r) => ({ ...r, [pedido.id]: { erro: err.message } }));
     }
   }
 
@@ -92,6 +110,12 @@ export default function Pedidos() {
       </form>
 
       {erro && <p className="alerta-erro">{erro}</p>}
+      {dados.emailConfigurado === false && (
+        <p className="alerta-erro">
+          O envio de e-mail não está configurado no servidor (SMTP no .env da API). Os pedidos são gravados, mas os avisos
+          por e-mail não saem.
+        </p>
+      )}
 
       {dados.pedidos.length === 0 && (
         <p className="vazio">{buscaAplicada ? `Nenhum pedido encontrado para "${buscaAplicada}".` : 'Nenhum pedido ainda.'}</p>
@@ -130,6 +154,14 @@ export default function Pedidos() {
                       <span className="codigo-cliente" title="Código mostrado ao cliente">
                         {pedido.codigo_publico}
                       </span>
+                      {pedido.emails?.some((e) => e.status === 'falhou') && (
+                        <>
+                          <br />
+                          <span className="email-falhou" title="Abra o pedido (+) para ver e reenviar">
+                            ⚠ e-mail falhou
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td>
                       {pedido.nome_fantasia || pedido.razao_social || <span className="pdesc">Não informada</span>}
@@ -220,6 +252,54 @@ export default function Pedidos() {
                               }
                             }}
                           />
+                        </div>
+
+                        <div className="emails-pedido">
+                          <p className="emails-titulo">E-mails</p>
+                          {pedido.emails?.length ? (
+                            <table className="tabela-itens">
+                              <thead>
+                                <tr>
+                                  <th>Para</th>
+                                  <th>Tipo</th>
+                                  <th>Situação</th>
+                                  <th>Detalhe</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pedido.emails.map((e) => (
+                                  <tr key={e.id}>
+                                    <td>{e.destino}</td>
+                                    <td>{e.tipo === 'interno' ? 'aviso interno' : 'confirmação ao cliente'}</td>
+                                    <td className={`email-status ${e.status}`}>{e.status}</td>
+                                    <td className="pdesc">
+                                      {e.status === 'enviado' && e.enviado_em
+                                        ? formatarData(e.enviado_em)
+                                        : e.ultimo_erro || (e.status === 'pendente' ? 'ainda não enviado' : '')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="pdesc">Nenhum e-mail registrado para este pedido.</p>
+                          )}
+                          <div className="emails-acoes">
+                            <button
+                              type="button"
+                              className="cta-primario"
+                              disabled={reenvio[pedido.id]?.enviando}
+                              onClick={() => reenviar(pedido)}
+                            >
+                              {reenvio[pedido.id]?.enviando ? 'Enviando…' : 'Reenviar e-mails'}
+                            </button>
+                            {reenvio[pedido.id]?.mensagem && <span className="email-ok">{reenvio[pedido.id].mensagem}</span>}
+                            {reenvio[pedido.id]?.erro && <span className="email-erro">{reenvio[pedido.id].erro}</span>}
+                          </div>
+                          <p className="pdesc">
+                            Reenvia o aviso para os e-mails atuais de admin → Loja e, se o cliente preferiu e-mail, a
+                            confirmação para ele.
+                          </p>
                         </div>
                       </td>
                     </tr>

@@ -68,3 +68,14 @@ a{color:inherit}
 .busca-pedidos input{flex:1;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:3px;font:inherit;font-size:14px}
 .busca-pedidos .cta-primario{height:38px}
 .codigo-cliente{display:inline-block;margin-top:3px;font-size:11px;color:var(--lime-deep);border:1px solid var(--lime);border-radius:3px;padding:1px 6px}
+.email-falhou{display:inline-block;margin-top:3px;font-size:10.5px;color:var(--erro);border:1px solid rgba(192,57,43,.35);border-radius:3px;padding:1px 6px;background:var(--erro-bg)}
+.emails-pedido{margin-top:16px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.emails-titulo{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.emails-acoes{display:flex;align-items:center;gap:12px;margin:10px 0 6px;flex-wrap:wrap}
+.emails-acoes .cta-primario{height:36px}
+.email-status{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase}
+.email-status.enviado{color:var(--lime-deep)}
+.email-status.falhou{color:var(--erro)}
+.email-status.pendente{color:#9A6B00}
+.email-ok{color:var(--lime-deep);font-size:13px}
+.email-erro{color:var(--erro);font-size:13px}

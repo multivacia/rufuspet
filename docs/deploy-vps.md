@@ -50,6 +50,13 @@ bash /opt/rufuspet/deploy/atualizar.sh
 Faz backup do banco (`~/backups/rufuspet`), atualiza o código (só fast-forward), instala dependências,
 aplica migrations, gera o site e reinicia `rufus-api`.
 
+## E-mails que não chegaram
+
+No admin → **Pedidos**, pedidos com falha de envio mostram **"⚠ e-mail falhou"**. Abra o pedido (**+**): a seção
+**E-mails** mostra cada envio e o motivo do erro. Depois de corrigir o `.env` (e `pm2 restart rufus-api --update-env`),
+clique em **Reenviar e-mails**. Se o SMTP não estiver configurado (ex.: `SMTP_USER`/`SMTP_PASS` vazios), o admin mostra
+um aviso no topo e o reenvio informa o motivo, em vez de tentar enviar sem login (erro 530 do Gmail).
+
 ## Consultas úteis
 
 - Logs: `pm2 logs rufus-api --lines 100`

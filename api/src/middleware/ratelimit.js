@@ -10,7 +10,7 @@ export const pedidosRateLimit = rateLimit({
 
 export const adminLoginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: () => Number(process.env.ADMIN_LOGIN_LIMITE) || 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: { codigo: 'LIMITE_EXCEDIDO', mensagem: 'Muitas tentativas de login. Tente novamente mais tarde.' } },
