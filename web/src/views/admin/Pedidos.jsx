@@ -26,6 +26,7 @@ export default function Pedidos() {
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState({});
   const [reenvio, setReenvio] = useState({}); // por pedido: { enviando, mensagem, erro }
+  const [erroPedido, setErroPedido] = useState({}); // por pedido: mensagem (ex.: estoque insuficiente)
 
   useEffect(() => {
     adminListarPedidos({ pagina, busca: buscaAplicada })
@@ -36,14 +37,20 @@ export default function Pedidos() {
   async function aplicarPatch(pedido, campos) {
     setSalvando((atual) => ({ ...atual, [pedido.id]: true }));
     setErro(null);
+    setErroPedido((atual) => ({ ...atual, [pedido.id]: null }));
     try {
       const atualizado = await adminAtualizarPedido(pedido.id, campos);
-      setDados((atual) => ({
-        ...atual,
-        pedidos: atual.pedidos.map((p) => (p.id === pedido.id ? { ...p, ...atualizado, itens: p.itens } : p)),
-      }));
+      if ('status' in campos) {
+        // A mudança de status pode baixar/estornar estoque: recarrega para trazer o custo.
+        setDados(await adminListarPedidos({ pagina, busca: buscaAplicada }));
+      } else {
+        setDados((atual) => ({
+          ...atual,
+          pedidos: atual.pedidos.map((p) => (p.id === pedido.id ? { ...p, ...atualizado, itens: p.itens } : p)),
+        }));
+      }
     } catch (err) {
-      setErro(err.message);
+      setErroPedido((atual) => ({ ...atual, [pedido.id]: err.message }));
     } finally {
       setSalvando((atual) => ({ ...atual, [pedido.id]: false }));
     }
@@ -210,6 +217,16 @@ export default function Pedidos() {
                     <td className="mono">{formatarData(pedido.criado_em)}</td>
                   </tr>
 
+                  {erroPedido[pedido.id] && (
+                    <tr>
+                      <td colSpan={7}>
+                        <p className="alerta-erro" style={{ margin: 0 }}>
+                          {erroPedido[pedido.id]}
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+
                   {expandido === pedido.id && (
                     <tr>
                       <td colSpan={7}>
@@ -238,6 +255,25 @@ export default function Pedidos() {
                             ))}
                           </tbody>
                         </table>
+
+                        <p className="estoque-pedido">
+                          <span className="emails-titulo">Estoque: </span>
+                          {pedido.estoque_baixado_em ? (
+                            <>
+                              baixado em {formatarData(pedido.estoque_baixado_em)} · custo{' '}
+                              <span className="mono">{brl(pedido.custo_estoque)}</span> · margem{' '}
+                              <span className="mono">
+                                {brl(Number(pedido.valor_total) - Number(pedido.custo_estoque ?? 0))}
+                                {Number(pedido.valor_total) > 0 &&
+                                  ` (${(((Number(pedido.valor_total) - Number(pedido.custo_estoque ?? 0)) / Number(pedido.valor_total)) * 100)
+                                    .toFixed(1)
+                                    .replace('.', ',')}%)`}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="pdesc">sem baixa — baixa ao passar para confirmado ou faturado</span>
+                          )}
+                        </p>
 
                         <div className="form-campo" style={{ marginTop: 12, maxWidth: 420 }}>
                           <label htmlFor={`obs-${pedido.id}`}>Observações</label>

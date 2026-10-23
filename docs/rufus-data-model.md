@@ -268,3 +268,31 @@ sequencial e **interno** (admin, aviso interno, TXT). `POST /api/pedidos` respon
 número sequencial não vai ao navegador. A migration preenche os pedidos existentes com a data de `criado_em`.
 Colisão ao criar → novo sorteio (savepoint). `GET /api/admin/pedidos?busca=` procura por código (ignora hífen,
 espaço e caixa), número, nome do contato, razão social ou nome fantasia.
+
+## Migration 008 — estoque PEPS no admin (2026-10-23)
+
+Decisões do usuário: controle só no admin (o site público não mostra nem limita); custo guardado por compra;
+venda usa o custo das compras mais antigas ainda em estoque (PEPS); baixa ao confirmar no admin, bloqueada sem saldo;
+sem alerta de estoque baixo por enquanto.
+
+- `estoque_lotes`: uma linha por compra — `sku`, `data_entrada`, `quantidade_inicial`, `quantidade_restante`,
+  `custo_unitario` (4 casas), `observacao`, `criado_por`. Saldo do SKU = soma de `quantidade_restante`.
+  Ordem PEPS: `data_entrada`, depois `id`.
+- `estoque_movimentos`: histórico — `tipo` (`entrada`, `saida_pedido`, `estorno_pedido`, `baixa_manual`,
+  `entrada_excluida`), `quantidade` com sinal, `custo_total`, `pedido_id`/`lote_id`, `motivo`, `criado_por`.
+- `estoque_consumos`: quanto cada saída tirou de cada lote, com o custo; `estornado` marca o que voltou.
+- `pedidos.estoque_baixado_em`: NULL = sem baixa (inclusive todos os pedidos anteriores à migration).
+
+Regras (`api/src/services/estoque.service.js`):
+- Status → `confirmado`/`faturado` sem baixa: baixa todos os itens numa transação (lotes travados `FOR UPDATE`);
+  falta de saldo em qualquer SKU → 409 `ESTOQUE_INSUFICIENTE` com `faltas`, nada é baixado e o status não muda.
+- `confirmado` ↔ `faturado`: sem efeito no estoque. Status → `novo`/`cancelado` com baixa: devolve cada consumo ao
+  mesmo lote e registra `estorno_pedido`.
+- Baixa manual exige motivo e saldo; consome PEPS. Correção para mais = nova entrada com custo.
+- Entrada só pode ser excluída se nada dela foi consumido (nem estornado).
+- Custo do pedido = soma dos consumos não estornados das suas saídas (`custo_estoque` em `GET /api/admin/pedidos`).
+
+Rotas admin: `GET /api/admin/estoque` (saldos, custo médio, próximo custo PEPS, valor em estoque),
+`GET /api/admin/estoque/lotes?sku=`, `GET /api/admin/estoque/movimentos?sku=`, `POST /api/admin/estoque/entradas`,
+`DELETE /api/admin/estoque/entradas/:id`, `POST /api/admin/estoque/baixas`.
+

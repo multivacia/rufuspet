@@ -40,7 +40,7 @@ after(async () => {
 
 beforeEach(async () => {
   if (!urlTeste) return;
-  await pool.query('TRUNCATE pedidos, admin_usuarios RESTART IDENTITY CASCADE');
+  await pool.query('TRUNCATE pedidos, admin_usuarios, estoque_lotes RESTART IDENTITY CASCADE');
   await pool.query("UPDATE loja_config SET nome = 'Rufus', razao_social = '', cnpj = '', telefone = '', whatsapp = '', email_contato = '', endereco = '', horario = '', instagram = '', emails_internos = '', pedido_minimo = 0");
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   // A numeração reinicia a cada teste; TXT de um teste anterior com o mesmo número não pode ser reaproveitado.
@@ -375,4 +375,130 @@ test('admin: reenviar e-mails do pedido', opcoes, async () => {
       else process.env[k] = v;
     }
   }
+});
+
+// ---------------------------------------------------------------- estoque (PEPS)
+
+async function req(cookie, metodo, caminho, corpo) {
+  const r = await fetch(base + caminho, {
+    method: metodo,
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
+  return { status: r.status, corpo: await r.json() };
+}
+
+async function saldoDe(cookie, sku) {
+  const { corpo } = await req(cookie, 'GET', '/api/admin/estoque');
+  return corpo.saldos.find((s) => s.sku === sku);
+}
+
+test('estoque: entradas com custo, baixa PEPS ao confirmar, estorno ao cancelar', opcoes, async () => {
+  const cookie = await loginAdmin();
+  // Compra mais nova lançada primeiro: a ordem PEPS é pela data da compra.
+  assert.equal((await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 10, custoUnitario: '3,00', data: '2026-10-02' })).status, 201);
+  assert.equal((await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 10, custoUnitario: 2, data: '2026-10-01' })).status, 201);
+  let k3 = await saldoDe(cookie, 'RFS-K3');
+  assert.equal(k3.saldo, 20);
+  assert.equal(k3.custoEstoque, 50);
+  assert.equal(k3.proximoCusto, 2);
+
+  const { corpo: criado } = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 15 }] }));
+  const { rows } = await pool.query('SELECT id FROM pedidos WHERE codigo_publico = $1', [criado.codigo]);
+  const id = rows[0].id;
+
+  // Pedido novo não mexe no estoque.
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 20);
+
+  const conf = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' });
+  assert.equal(conf.status, 200);
+  assert.ok(conf.corpo.estoque_baixado_em);
+  k3 = await saldoDe(cookie, 'RFS-K3');
+  assert.equal(k3.saldo, 5);
+  assert.equal(k3.custoEstoque, 15); // sobraram 5 da compra de R$ 3,00
+  let lista = (await req(cookie, 'GET', '/api/admin/pedidos')).corpo;
+  assert.equal(lista.pedidos[0].custo_estoque, 35); // 10 × 2,00 + 5 × 3,00
+
+  // confirmado → faturado não baixa de novo.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'faturado' })).status, 200);
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 5);
+
+  // Cancelar devolve para os mesmos lotes.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'cancelado' })).status, 200);
+  k3 = await saldoDe(cookie, 'RFS-K3');
+  assert.equal(k3.saldo, 20);
+  assert.equal(k3.custoEstoque, 50);
+  lista = (await req(cookie, 'GET', '/api/admin/pedidos')).corpo;
+  assert.equal(lista.pedidos[0].custo_estoque, null);
+  assert.equal(lista.pedidos[0].estoque_baixado_em, null);
+
+  // Reconfirmar baixa de novo com o mesmo custo.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' })).status, 200);
+  lista = (await req(cookie, 'GET', '/api/admin/pedidos')).corpo;
+  assert.equal(lista.pedidos[0].custo_estoque, 35);
+
+  const movs = (await req(cookie, 'GET', '/api/admin/estoque/movimentos?sku=RFS-K3')).corpo.movimentos;
+  assert.deepEqual(
+    movs.map((m) => [m.tipo, m.quantidade]),
+    [['saida_pedido', -15], ['estorno_pedido', 15], ['saida_pedido', -15], ['entrada', 10], ['entrada', 10]],
+  );
+  assert.equal(movs[0].pedidoCodigo, criado.codigo);
+  assert.equal(movs[0].criadoPor, 'admin@rufus.com');
+});
+
+test('estoque: confirmação bloqueada sem saldo, sem baixa parcial', opcoes, async () => {
+  const cookie = await loginAdmin();
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 5, custoUnitario: 2 });
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K6', quantidade: 1, custoUnitario: 4 });
+  const { corpo: criado } = await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-K3', quantidade: 3 }, { sku: 'RFS-K6', quantidade: 2 }] }));
+  const id = (await pool.query('SELECT id FROM pedidos WHERE codigo_publico = $1', [criado.codigo])).rows[0].id;
+
+  const r = await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { status: 'confirmado' });
+  assert.equal(r.status, 409);
+  assert.equal(r.corpo.erro.codigo, 'ESTOQUE_INSUFICIENTE');
+  assert.deepEqual(r.corpo.erro.faltas.map((f) => [f.sku, f.pedido, f.saldo]), [['RFS-K6', 2, 1]]);
+  assert.match(r.corpo.erro.mensagem, /pedido 2, saldo 1/);
+
+  const pedido = (await pool.query('SELECT status, estoque_baixado_em FROM pedidos WHERE id = $1', [id])).rows[0];
+  assert.equal(pedido.status, 'novo');
+  assert.equal(pedido.estoque_baixado_em, null);
+  assert.equal((await saldoDe(cookie, 'RFS-K3')).saldo, 5); // K3 tinha saldo, mas nada foi baixado
+
+  // Observações continuam editáveis sem mexer no estoque.
+  assert.equal((await req(cookie, 'PATCH', `/api/admin/pedidos/${id}`, { observacoes: 'aguardando reposição' })).status, 200);
+});
+
+test('estoque: baixa manual PEPS, exclusão de entrada e validações', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const e1 = await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-POTE-AZUL', quantidade: 4, custoUnitario: '1,5', data: '2026-09-01' });
+  const e2 = await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-POTE-AZUL', quantidade: 6, custoUnitario: '2,25', data: '2026-09-10' });
+
+  assert.equal((await req(cookie, 'POST', '/api/admin/estoque/baixas', { sku: 'RFS-POTE-AZUL', quantidade: 1 })).status, 400); // sem motivo
+  const semSaldo = await req(cookie, 'POST', '/api/admin/estoque/baixas', { sku: 'RFS-POTE-AZUL', quantidade: 11, motivo: 'avaria' });
+  assert.equal(semSaldo.status, 409);
+  const baixa = await req(cookie, 'POST', '/api/admin/estoque/baixas', { sku: 'RFS-POTE-AZUL', quantidade: 5, motivo: 'avaria no transporte' });
+  assert.equal(baixa.status, 201);
+  assert.equal(baixa.corpo.custoTotal, 8.25); // 4 × 1,50 + 1 × 2,25
+
+  // A primeira entrada foi consumida: não pode excluir. A segunda também (1 un.). Uma nova, intacta, pode.
+  assert.equal((await req(cookie, 'DELETE', `/api/admin/estoque/entradas/${e1.corpo.loteId}`)).status, 409);
+  assert.equal((await req(cookie, 'DELETE', `/api/admin/estoque/entradas/${e2.corpo.loteId}`)).status, 409);
+  const e3 = await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-POTE-AZUL', quantidade: 100, custoUnitario: 9 });
+  const lotes = (await req(cookie, 'GET', '/api/admin/estoque/lotes?sku=RFS-POTE-AZUL')).corpo.lotes;
+  assert.deepEqual(lotes.map((l) => l.podeExcluir), [true, false, false]);
+  assert.equal((await req(cookie, 'DELETE', `/api/admin/estoque/entradas/${e3.corpo.loteId}`)).status, 200);
+  assert.equal((await saldoDe(cookie, 'RFS-POTE-AZUL')).saldo, 5);
+  const movs = (await req(cookie, 'GET', '/api/admin/estoque/movimentos?sku=RFS-POTE-AZUL')).corpo.movimentos;
+  assert.equal(movs[0].tipo, 'entrada_excluida');
+  assert.equal(movs[0].quantidade, -100);
+
+  // Validações.
+  const invalido = async (corpo) => (await req(cookie, 'POST', '/api/admin/estoque/entradas', corpo)).corpo.erro?.campo;
+  assert.equal(await invalido({ sku: 'RFS-K3', quantidade: 0, custoUnitario: 1 }), 'quantidade');
+  assert.equal(await invalido({ sku: 'RFS-K3', quantidade: '2.5', custoUnitario: 1 }), 'quantidade');
+  assert.equal(await invalido({ sku: 'RFS-K3', quantidade: 2, custoUnitario: '-1' }), 'custoUnitario');
+  assert.equal(await invalido({ sku: 'RFS-K3', quantidade: 2, custoUnitario: 1, data: '2099-01-01' }), 'data');
+  assert.equal(await invalido({ sku: 'RFS-K3', quantidade: 2, custoUnitario: 1, data: '2026-02-30' }), 'data');
+  assert.equal((await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'NAO-EXISTE', quantidade: 2, custoUnitario: 1 })).status, 404);
+  assert.equal((await fetch(`${base}/api/admin/estoque`)).status, 401);
 });

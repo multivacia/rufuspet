@@ -7,8 +7,9 @@
 - Repositório `multivacia/rufuspet` (público). Fluxo: trabalhar na **`develop`**, PR → **`main`** com aprovação
   explícita do usuário, deploy no VPS a partir do `main`.
 - `main` = `35b65f3` (PR #7). Em produção no VPS (o usuário roda o deploy; esta sessão não tem SSH).
-- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–007, runner próprio); `web/` React 19 + Vite.
-  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (32) · `cd web && npm test` (6).
+- `develop` à frente do `main`: **controle de estoque PEPS no admin** (migration 008), validado, sem PR ainda.
+- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–008, runner próprio); `web/` React 19 + Vite.
+  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (35) · `cd web && npm test` (7).
 
 ## Produção (VPS Ubuntu 22.04, IP 143.95.222.99, SSH porta 22022, usuário `deploy` com sudo)
 - **Compartilha o servidor com o SGP** (`sgp-api` no PM2, site nginx `sgp.multivacia.com`, `/opt/sgp`). Não mexer no SGP.
@@ -24,6 +25,11 @@ opcionais Nome/Razão social e CPF/CNPJ · pedido mínimo (admin) · código pú
 (número `RFS-<ano>-<seq>` só interno) · e-mail HTML (Gmail SMTP) para destinatários do admin + confirmação ao
 cliente · links WhatsApp (wa.me) · admin: produtos, pedidos (busca, situação dos e-mails, **Reenviar e-mails**),
 Loja (dados do rodapé, e-mails internos, pedido mínimo).
+
+## Estoque (develop, 2026-10-23)
+- Só no admin; custo por compra (lote), saídas PEPS; baixa ao passar pedido para confirmado/faturado (bloqueada sem
+  saldo), estorno ao voltar para novo/cancelado; baixa manual com motivo. Detalhes: `docs/rufus-data-model.md` (Migration 008).
+- Sem alerta de estoque baixo (decisão do usuário, por enquanto).
 
 ## E-mail em produção (confirmado pelo usuário em 2026-10-23)
 - Remetente e contato da Loja = `vendas@rufuspet.com.br` (`.env` do VPS + admin → Loja); confirmação ao cliente com

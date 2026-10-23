@@ -292,6 +292,31 @@
 - Confirmado pelo usuário: envio funcionando e sem cair em spam. Pendência de SMTP do VPS encerrada.
 - Nenhuma mudança de código. Próximo passo pedido: aba de controle de estoque no /admin.
 
+## Atualização 2026-10-23 — controle de estoque no admin (PEPS)
+- Decisões do usuário: baixa ao confirmar no admin; site público não mostra nem limita estoque; histórico de
+  movimentos + custo de cada compra; venda usa o custo das compras mais antigas ainda em estoque (PEPS); confirmação
+  bloqueada sem saldo; sem alerta de estoque baixo por enquanto.
+- Decisões técnicas (informadas ao usuário): correção para mais = nova entrada com custo; para menos = baixa manual
+  com motivo (PEPS); entrada excluível só se nada dela foi consumido; pedidos anteriores à migration começam sem baixa;
+  `confirmado` ↔ `faturado` não mexe no estoque; `novo`/`cancelado` estorna para os mesmos lotes.
+- `migrations/008_estoque_peps.sql` (lotes, movimentos, consumos, `pedidos.estoque_baixado_em`);
+  `services/estoque.service.js`; `PATCH /api/admin/pedidos/:id` passa a aplicar baixa/estorno na mesma transação
+  (409 `ESTOQUE_INSUFICIENTE` com `faltas`); `GET /api/admin/pedidos` traz `custo_estoque`; rotas `/api/admin/estoque/*`.
+- Web: aba **Estoque** (saldos, próximo custo PEPS, custo médio, valor em estoque e total; formulários de entrada e
+  baixa manual com campo inválido marcado; compras com restante e "excluir"; movimentos com pedido/motivo/usuário;
+  filtro por produto); Pedidos: erro de estoque na própria linha e "Estoque: baixado em … · custo · margem (%)" no detalhe.
+- Validação: API `npm test` 35/35 (2× seguidas; novos: PEPS com compra lançada fora de ordem, custo 10×2+5×3,
+  confirmado→faturado sem nova baixa, cancelar estorna, reconfirmar; bloqueio sem baixa parcial; baixa manual,
+  exclusão de entrada e validações); web `npm test` 7/7 (novo: `brlCusto`); build ok; migration 001–008 em banco limpo.
+  E2E Playwright (API + Vite + PostgreSQL 16): custo "abc" recusado com campo marcado; duas compras K3 → saldo 20,
+  valor R$ 50,00; pedido K3×15 + K6×1 sem K6 → "Estoque insuficiente — Kit 6 rolos: pedido 1, saldo 0" e status segue
+  `novo`; após entrada de K6, confirmação ok com custo R$ 39,00 e margem R$ 158,40 (80,2%); baixa manual K3×2; cancelar
+  devolveu K3=18 e K6=2; mobile 390px sem rolagem horizontal da página. Erros de console só os 400/409 esperados.
+- Corrigido durante o teste: separador "·" sobrando em movimentos sem motivo; valores quebrando linha no celular
+  (tabelas agora rolam na horizontal).
+- Branch `develop` (não publicada). No deploy: `atualizar.sh` aplica a migration 008 (só cria tabelas e uma coluna,
+  não altera dados existentes).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

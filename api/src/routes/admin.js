@@ -6,12 +6,29 @@ import { adminLoginRateLimit } from '../middleware/ratelimit.js';
 import { ErroLoja, atualizarLoja, buscarLoja } from '../services/loja.service.js';
 import { normalizarCodigo } from '../services/regras-pedido.js';
 import { ErroEmail, reenviarEmails, situacaoEmail } from '../services/notificacao.service.js';
+import {
+  ErroEstoque,
+  atualizarPedidoComEstoque,
+  custoDosPedidos,
+  excluirEntrada,
+  listarLotes,
+  listarMovimentos,
+  listarSaldos,
+  registrarBaixaManual,
+  registrarEntrada,
+} from '../services/estoque.service.js';
 
 export const adminRouter = Router();
 
 const CAMPOS_PRODUTO_EDITAVEIS = ['preco_unitario', 'ativo'];
 
 const STATUS_PEDIDO_VALIDOS = ['novo', 'confirmado', 'faturado', 'cancelado'];
+
+function responderErroEstoque(res, err) {
+  return res.status(err.status).json({
+    erro: { codigo: err.codigo, mensagem: err.message, campo: err.campo, faltas: err.faltas },
+  });
+}
 
 function montarUpdate(body, camposPermitidos) {
   const updates = {};
@@ -146,12 +163,19 @@ adminRouter.get('/admin/pedidos', autenticarAdmin, async (req, res, next) => {
       itensPorPedido.get(item.pedido_id).push(item);
     }
 
+    const custos = await custoDosPedidos(pedidos.filter((p) => p.estoque_baixado_em).map((p) => p.id));
+
     res.json({
       pagina,
       porPagina,
       total: totalRows[0].total,
       emailConfigurado: situacaoEmail().configurado,
-      pedidos: pedidos.map((p) => ({ ...p, itens: itensPorPedido.get(p.id) ?? [], emails: emailsPorPedido.get(p.id) ?? [] })),
+      pedidos: pedidos.map((p) => ({
+        ...p,
+        itens: itensPorPedido.get(p.id) ?? [],
+        emails: emailsPorPedido.get(p.id) ?? [],
+        custo_estoque: custos.get(p.id) ?? null,
+      })),
     });
   } catch (err) {
     next(err);
@@ -175,19 +199,18 @@ adminRouter.patch('/admin/pedidos/:id', autenticarAdmin, async (req, res, next) 
       return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Nenhum campo editável informado' } });
     }
 
-    const sets = campos.map((campo, i) => `${campo} = $${i + 2}`).join(', ');
-    const valores = campos.map((campo) => updates[campo]);
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Pedido inválido' } });
+    }
 
-    const { rows } = await pool.query(
-      `UPDATE pedidos SET ${sets}, atualizado_em = now() WHERE id = $1 RETURNING *`,
-      [req.params.id, ...valores],
-    );
-
-    if (rows.length === 0) {
+    const pedido = await atualizarPedidoComEstoque(id, updates, req.admin.email);
+    if (!pedido) {
       return res.status(404).json({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pedido não encontrado' } });
     }
-    res.json(rows[0]);
+    res.json(pedido);
   } catch (err) {
+    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
     next(err);
   }
 });
@@ -224,6 +247,66 @@ adminRouter.post('/admin/pedidos/:id/reenviar-emails', autenticarAdmin, async (r
     if (err instanceof ErroEmail) {
       return res.status(409).json({ erro: { codigo: 'EMAIL_NAO_CONFIGURADO', mensagem: err.message } });
     }
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------- estoque
+
+adminRouter.get('/admin/estoque', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.json({ saldos: await listarSaldos() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.get('/admin/estoque/lotes', autenticarAdmin, async (req, res, next) => {
+  try {
+    const sku = String(req.query.sku ?? '').trim() || undefined;
+    res.json({ lotes: await listarLotes({ sku, somenteComSaldo: req.query.comSaldo === '1' }) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.get('/admin/estoque/movimentos', autenticarAdmin, async (req, res, next) => {
+  try {
+    const sku = String(req.query.sku ?? '').trim() || undefined;
+    const limite = Number.parseInt(req.query.limite, 10) || 100;
+    res.json({ movimentos: await listarMovimentos({ sku, limite }) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.post('/admin/estoque/entradas', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.status(201).json(await registrarEntrada(req.body, req.admin.email));
+  } catch (err) {
+    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
+    next(err);
+  }
+});
+
+adminRouter.delete('/admin/estoque/entradas/:id', autenticarAdmin, async (req, res, next) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Entrada inválida' } });
+    }
+    res.json(await excluirEntrada(id, req.admin.email));
+  } catch (err) {
+    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
+    next(err);
+  }
+});
+
+adminRouter.post('/admin/estoque/baixas', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.status(201).json(await registrarBaixaManual(req.body, req.admin.email));
+  } catch (err) {
+    if (err instanceof ErroEstoque) return responderErroEstoque(res, err);
     next(err);
   }
 });

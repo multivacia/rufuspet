@@ -79,3 +79,27 @@ a{color:inherit}
 .email-status.pendente{color:#9A6B00}
 .email-ok{color:var(--lime-deep);font-size:13px}
 .email-erro{color:var(--erro);font-size:13px}
+
+/* Estoque (admin) */
+.tabela-admin .num{text-align:right;white-space:nowrap}
+.tabela-estoque td.mono,.tabela-larga td.mono{white-space:nowrap}
+.tabela-estoque,.tabela-larga{min-width:720px}
+.tabela-estoque tr.selecionado td{background:var(--line-soft)}
+.tabela-estoque .saldo{font-size:15px;font-weight:600}
+.tabela-estoque .saldo.zerado{color:var(--erro)}
+.tabela-estoque tfoot td{padding:10px 8px;border-top:2px solid var(--line)}
+.link-produto{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.link-produto:hover{text-decoration-color:var(--lime-deep)}
+.estoque-forms{display:grid;grid-template-columns:3fr 2fr;gap:20px;margin:28px 0 36px}
+.estoque-form{background:var(--card);border:1px solid var(--line-soft);border-radius:3px;padding:16px}
+.estoque-form select{width:100%;height:42px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:14px}
+.estoque-linha{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.form-campo.com-erro input,.form-campo.com-erro select{border-color:var(--erro);outline:1px solid var(--erro)}
+.estoque-filtro{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.estoque-filtro select{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:13px}
+.tabela-admin tr.esgotado td{color:var(--ink-soft)}
+.tabela-admin td.neg{color:var(--erro)}
+.tabela-admin td.pos{color:var(--lime-deep)}
+.estoque-pedido{margin:12px 0 0;font-size:13px}
+.estoque-pedido .mono{font-size:12.5px}
+@media (max-width:760px){.estoque-forms{grid-template-columns:1fr}.estoque-linha{grid-template-columns:1fr 1fr}.admin-topbar-in{flex-wrap:wrap;gap:12px}}

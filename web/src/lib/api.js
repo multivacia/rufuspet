@@ -10,7 +10,7 @@ async function requisitar(caminho, opcoes) {
 
   if (!resposta.ok) {
     const erro = dados?.erro ?? { codigo: 'ERRO_DESCONHECIDO', mensagem: 'Erro inesperado, tente novamente.' };
-    throw Object.assign(new Error(erro.mensagem), { codigo: erro.codigo, campo: erro.campo, status: resposta.status });
+    throw Object.assign(new Error(erro.mensagem), { codigo: erro.codigo, campo: erro.campo, faltas: erro.faltas, status: resposta.status });
   }
 
   return dados;
@@ -68,6 +68,30 @@ export function adminReenviarEmails(id) {
 
 export function adminAtualizarPedido(id, campos) {
   return requisitar(`/admin/pedidos/${id}`, { method: 'PATCH', body: JSON.stringify(campos) });
+}
+
+export function adminEstoqueSaldos() {
+  return requisitar('/admin/estoque');
+}
+
+export function adminEstoqueLotes(sku) {
+  return requisitar(`/admin/estoque/lotes${sku ? `?sku=${encodeURIComponent(sku)}` : ''}`);
+}
+
+export function adminEstoqueMovimentos(sku) {
+  return requisitar(`/admin/estoque/movimentos${sku ? `?sku=${encodeURIComponent(sku)}` : ''}`);
+}
+
+export function adminEstoqueEntrada(campos) {
+  return requisitar('/admin/estoque/entradas', { method: 'POST', body: JSON.stringify(campos) });
+}
+
+export function adminEstoqueExcluirEntrada(id) {
+  return requisitar(`/admin/estoque/entradas/${id}`, { method: 'DELETE' });
+}
+
+export function adminEstoqueBaixa(campos) {
+  return requisitar('/admin/estoque/baixas', { method: 'POST', body: JSON.stringify(campos) });
 }
 
 // Achata a resposta agrupada de GET /api/produtos numa lista de SKUs

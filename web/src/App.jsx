@@ -13,6 +13,7 @@ import AdminLogin from './views/admin/Login.jsx';
 import AdminProdutos from './views/admin/Produtos.jsx';
 import AdminPedidos from './views/admin/Pedidos.jsx';
 import AdminLoja from './views/admin/Loja.jsx';
+import AdminEstoque from './views/admin/Estoque.jsx';
 
 function Loja() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
           <Route index element={<Navigate to="produtos" replace />} />
           <Route path="produtos" element={<AdminProdutos />} />
           <Route path="pedidos" element={<AdminPedidos />} />
+          <Route path="estoque" element={<AdminEstoque />} />
           <Route path="loja" element={<AdminLoja />} />
         </Route>
         <Route path="/*" element={<Loja />} />
