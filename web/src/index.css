@@ -94,6 +94,7 @@ a{color:inherit}
 .estoque-form{background:var(--card);border:1px solid var(--line-soft);border-radius:3px;padding:16px}
 .estoque-form select{width:100%;height:42px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:14px}
 .estoque-linha{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.estoque-linha-2{grid-template-columns:2fr 1fr}
 .form-campo.com-erro input,.form-campo.com-erro select{border-color:var(--erro);outline:1px solid var(--erro)}
 .estoque-filtro{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
 .estoque-filtro select{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:13px}
@@ -102,4 +103,4 @@ a{color:inherit}
 .tabela-admin td.pos{color:var(--lime-deep)}
 .estoque-pedido{margin:12px 0 0;font-size:13px}
 .estoque-pedido .mono{font-size:12.5px}
-@media (max-width:760px){.estoque-forms{grid-template-columns:1fr}.estoque-linha{grid-template-columns:1fr 1fr}.admin-topbar-in{flex-wrap:wrap;gap:12px}}
+@media (max-width:760px){.estoque-forms{grid-template-columns:1fr}.estoque-linha,.estoque-linha-2{grid-template-columns:1fr 1fr}.admin-topbar-in{flex-wrap:wrap;gap:12px}}

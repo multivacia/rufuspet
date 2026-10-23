@@ -82,6 +82,10 @@ export function adminEstoqueMovimentos(sku) {
   return requisitar(`/admin/estoque/movimentos${sku ? `?sku=${encodeURIComponent(sku)}` : ''}`);
 }
 
+export function adminEstoqueFornecedores() {
+  return requisitar('/admin/estoque/fornecedores');
+}
+
 export function adminEstoqueEntrada(campos) {
   return requisitar('/admin/estoque/entradas', { method: 'POST', body: JSON.stringify(campos) });
 }

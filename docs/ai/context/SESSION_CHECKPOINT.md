@@ -7,9 +7,9 @@
 - Repositório `multivacia/rufuspet` (público). Fluxo: trabalhar na **`develop`**, PR → **`main`** com aprovação
   explícita do usuário, deploy no VPS a partir do `main`.
 - `main` = `35b65f3` (PR #7). Em produção no VPS (o usuário roda o deploy; esta sessão não tem SSH).
-- `develop` à frente do `main`: **controle de estoque PEPS no admin** (migration 008), validado, sem PR ainda.
-- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–008, runner próprio); `web/` React 19 + Vite.
-  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (35) · `cd web && npm test` (7).
+- `develop` à frente do `main`: **controle de estoque PEPS no admin** (migrations 008–009), validado, sem PR ainda.
+- Stack: `api/` Node 20+/Express + PostgreSQL (migrations SQL 001–009, runner próprio); `web/` React 19 + Vite.
+  Testes: `cd api && DATABASE_URL_TESTE=... npm test` (36) · `cd web && npm test` (7).
 
 ## Produção (VPS Ubuntu 22.04, IP 143.95.222.99, SSH porta 22022, usuário `deploy` com sudo)
 - **Compartilha o servidor com o SGP** (`sgp-api` no PM2, site nginx `sgp.multivacia.com`, `/opt/sgp`). Não mexer no SGP.
@@ -29,7 +29,10 @@ Loja (dados do rodapé, e-mails internos, pedido mínimo).
 ## Estoque (develop, 2026-10-23)
 - Só no admin; custo por compra (lote), saídas PEPS; baixa ao passar pedido para confirmado/faturado (bloqueada sem
   saldo), estorno ao voltar para novo/cancelado; baixa manual com motivo. Detalhes: `docs/rufus-data-model.md` (Migration 008).
+- Compra: produto, quantidade, custo unitário, data, fornecedor (texto livre, opcional, com sugestão),
+  nota fiscal/documento (opcional), observação. Sem campo de origem.
 - Sem alerta de estoque baixo (decisão do usuário, por enquanto).
+- Próxima ideia do usuário: aba de frete/custo de importação para calcular o custo unitário (ainda não especificada).
 
 ## E-mail em produção (confirmado pelo usuário em 2026-10-23)
 - Remetente e contato da Loja = `vendas@rufuspet.com.br` (`.env` do VPS + admin → Loja); confirmação ao cliente com

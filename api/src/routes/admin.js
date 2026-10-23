@@ -11,6 +11,7 @@ import {
   atualizarPedidoComEstoque,
   custoDosPedidos,
   excluirEntrada,
+  listarFornecedores,
   listarLotes,
   listarMovimentos,
   listarSaldos,
@@ -265,6 +266,14 @@ adminRouter.get('/admin/estoque/lotes', autenticarAdmin, async (req, res, next) 
   try {
     const sku = String(req.query.sku ?? '').trim() || undefined;
     res.json({ lotes: await listarLotes({ sku, somenteComSaldo: req.query.comSaldo === '1' }) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.get('/admin/estoque/fornecedores', autenticarAdmin, async (req, res, next) => {
+  try {
+    res.json({ fornecedores: await listarFornecedores() });
   } catch (err) {
     next(err);
   }

@@ -177,6 +177,8 @@ export async function listarLotes({ sku, somenteComSaldo = false } = {}, client 
     quantidadeInicial: l.quantidade_inicial,
     quantidadeRestante: l.quantidade_restante,
     custoUnitario: Number(l.custo_unitario),
+    fornecedor: l.fornecedor,
+    documento: l.documento,
     observacao: l.observacao,
     criadoPor: l.criado_por,
     criadoEm: l.criado_em,
@@ -192,10 +194,11 @@ export async function listarMovimentos({ sku, limite = 100 } = {}, client = pool
     filtro = 'WHERE m.sku = $2';
   }
   const { rows } = await client.query(
-    `SELECT m.*, p.nome, p.cor, pe.codigo_publico, pe.numero
+    `SELECT m.*, p.nome, p.cor, pe.codigo_publico, pe.numero, l.fornecedor, l.documento
        FROM estoque_movimentos m
        JOIN produtos p ON p.sku = m.sku
        LEFT JOIN pedidos pe ON pe.id = m.pedido_id
+       LEFT JOIN estoque_lotes l ON l.id = m.lote_id
       ${filtro}
       ORDER BY m.criado_em DESC, m.id DESC
       LIMIT $1`,
@@ -213,10 +216,21 @@ export async function listarMovimentos({ sku, limite = 100 } = {}, client = pool
     pedidoId: m.pedido_id,
     pedidoCodigo: m.codigo_publico,
     pedidoNumero: m.numero,
+    fornecedor: m.fornecedor ?? '',
+    documento: m.documento ?? '',
     motivo: m.motivo,
     criadoPor: m.criado_por,
     criadoEm: m.criado_em,
   }));
+}
+
+/** Fornecedores já usados (para sugestão no formulário), mais recentes primeiro. */
+export async function listarFornecedores(client = pool) {
+  const { rows } = await client.query(
+    `SELECT fornecedor FROM estoque_lotes WHERE fornecedor <> ''
+      GROUP BY fornecedor ORDER BY max(criado_em) DESC LIMIT 100`,
+  );
+  return rows.map((r) => r.fornecedor);
 }
 
 /** Custo PEPS (consumos não estornados) de cada pedido com baixa. Map pedidoId → reais. */
@@ -241,12 +255,14 @@ export async function registrarEntrada(body, criadoPor = '') {
   const custo = lerCusto(body?.custoUnitario);
   const data = lerData(body?.data);
   const observacao = texto(body?.observacao);
+  const fornecedor = texto(body?.fornecedor, 120).replace(/\s+/g, ' ');
+  const documento = texto(body?.documento, 60);
   return withTransaction(async (client) => {
     await exigirProduto(client, sku);
     const { rows } = await client.query(
-      `INSERT INTO estoque_lotes (sku, data_entrada, quantidade_inicial, quantidade_restante, custo_unitario, observacao, criado_por)
-       VALUES ($1, $2, $3, $3, $4, $5, $6) RETURNING id`,
-      [sku, data, quantidade, custo, observacao, criadoPor],
+      `INSERT INTO estoque_lotes (sku, data_entrada, quantidade_inicial, quantidade_restante, custo_unitario, observacao, criado_por, fornecedor, documento)
+       VALUES ($1, $2, $3, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [sku, data, quantidade, custo, observacao, criadoPor, fornecedor, documento],
     );
     const loteId = rows[0].id;
     await client.query(

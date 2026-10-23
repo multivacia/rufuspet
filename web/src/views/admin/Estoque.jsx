@@ -3,6 +3,7 @@ import {
   adminEstoqueBaixa,
   adminEstoqueEntrada,
   adminEstoqueExcluirEntrada,
+  adminEstoqueFornecedores,
   adminEstoqueLotes,
   adminEstoqueMovimentos,
   adminEstoqueSaldos,
@@ -30,13 +31,14 @@ function nomeProduto(p) {
   return `${p.nome}${p.cor ? ` — ${p.cor}` : ''}`;
 }
 
-const ENTRADA_VAZIA = { sku: '', quantidade: '', custoUnitario: '', data: hoje(), observacao: '' };
+const ENTRADA_VAZIA = { sku: '', quantidade: '', custoUnitario: '', data: hoje(), fornecedor: '', documento: '', observacao: '' };
 const BAIXA_VAZIA = { sku: '', quantidade: '', motivo: '' };
 
 export default function Estoque() {
   const [saldos, setSaldos] = useState(null);
   const [lotes, setLotes] = useState([]);
   const [movimentos, setMovimentos] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [erroGeral, setErroGeral] = useState(null);
 
@@ -46,7 +48,13 @@ export default function Estoque() {
 
   const recarregar = useCallback(async () => {
     try {
-      const [s, l, m] = await Promise.all([adminEstoqueSaldos(), adminEstoqueLotes(filtro), adminEstoqueMovimentos(filtro)]);
+      const [s, l, m, f] = await Promise.all([
+        adminEstoqueSaldos(),
+        adminEstoqueLotes(filtro),
+        adminEstoqueMovimentos(filtro),
+        adminEstoqueFornecedores(),
+      ]);
+      setFornecedores(f.fornecedores);
       setSaldos(s.saldos);
       setLotes(l.lotes);
       setMovimentos(m.movimentos);
@@ -185,8 +193,30 @@ export default function Estoque() {
               <input id="ent-data" type="date" max={hoje()} value={entrada.data} onChange={(e) => setEntrada((x) => ({ ...x, data: e.target.value }))} required />
             </div>
           </div>
+          <div className="estoque-linha estoque-linha-2">
+            <div className={classeCampo('entrada', 'fornecedor')}>
+              <label htmlFor="ent-forn">Fornecedor</label>
+              <input
+                id="ent-forn"
+                list="lista-fornecedores"
+                maxLength={120}
+                autoComplete="off"
+                value={entrada.fornecedor}
+                onChange={(e) => setEntrada((x) => ({ ...x, fornecedor: e.target.value }))}
+              />
+              <datalist id="lista-fornecedores">
+                {fornecedores.map((f) => (
+                  <option key={f} value={f} />
+                ))}
+              </datalist>
+            </div>
+            <div className={classeCampo('entrada', 'documento')}>
+              <label htmlFor="ent-doc">Nota fiscal / documento</label>
+              <input id="ent-doc" maxLength={60} value={entrada.documento} onChange={(e) => setEntrada((x) => ({ ...x, documento: e.target.value }))} />
+            </div>
+          </div>
           <div className="form-campo">
-            <label htmlFor="ent-obs">Observação (fornecedor, nota…)</label>
+            <label htmlFor="ent-obs">Observação</label>
             <input id="ent-obs" maxLength={300} value={entrada.observacao} onChange={(e) => setEntrada((x) => ({ ...x, observacao: e.target.value }))} />
           </div>
           {totalPrevisto(entrada) && <p className="pdesc">Total da compra: {totalPrevisto(entrada)}</p>}
@@ -255,6 +285,8 @@ export default function Estoque() {
                 <th className="num">Comprado</th>
                 <th className="num">Restante</th>
                 <th className="num">Custo un.</th>
+                <th>Fornecedor</th>
+                <th>Documento</th>
                 <th>Observação</th>
                 <th />
               </tr>
@@ -267,6 +299,8 @@ export default function Estoque() {
                   <td className="num mono">{l.quantidadeInicial}</td>
                   <td className="num mono">{l.quantidadeRestante}</td>
                   <td className="num mono">{brlCusto(l.custoUnitario)}</td>
+                  <td>{l.fornecedor || <span className="pdesc">—</span>}</td>
+                  <td className="mono pdesc">{l.documento}</td>
                   <td className="pdesc">{l.observacao}</td>
                   <td>
                     {l.podeExcluir && (
@@ -311,7 +345,7 @@ export default function Estoque() {
                   </td>
                   <td className="num mono">{brl(m.custoTotal)}</td>
                   <td className="pdesc">
-                    {[m.pedidoCodigo && `${m.pedidoNumero} · ${m.pedidoCodigo}`, m.motivo, m.criadoPor].filter(Boolean).join(' · ')}
+                    {[m.pedidoCodigo && `${m.pedidoNumero} · ${m.pedidoCodigo}`, m.fornecedor, m.documento, m.motivo, m.criadoPor].filter(Boolean).join(' · ')}
                   </td>
                 </tr>
               ))}

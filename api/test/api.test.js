@@ -502,3 +502,26 @@ test('estoque: baixa manual PEPS, exclusão de entrada e validações', opcoes, 
   assert.equal((await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'NAO-EXISTE', quantidade: 2, custoUnitario: 1 })).status, 404);
   assert.equal((await fetch(`${base}/api/admin/estoque`)).status, 401);
 });
+
+test('estoque: fornecedor e documento opcionais na entrada, com sugestão de fornecedores', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const e1 = await req(cookie, 'POST', '/api/admin/estoque/entradas', {
+    sku: 'RFS-K3', quantidade: 100, custoUnitario: '1,80', data: '2026-10-01',
+    fornecedor: '  Ningbo   Pet Supplies ', documento: 'DI 26/1234567-8', observacao: 'container 1',
+  });
+  assert.equal(e1.status, 201);
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K3', quantidade: 10, custoUnitario: 3, fornecedor: 'Distribuidora SP' });
+  await req(cookie, 'POST', '/api/admin/estoque/entradas', { sku: 'RFS-K6', quantidade: 5, custoUnitario: 4 }); // sem fornecedor
+
+  const lotes = (await req(cookie, 'GET', '/api/admin/estoque/lotes?sku=RFS-K3')).corpo.lotes;
+  const china = lotes.find((l) => l.id === e1.corpo.loteId);
+  assert.equal(china.fornecedor, 'Ningbo Pet Supplies');
+  assert.equal(china.documento, 'DI 26/1234567-8');
+  assert.equal(china.observacao, 'container 1');
+
+  const forn = (await req(cookie, 'GET', '/api/admin/estoque/fornecedores')).corpo.fornecedores;
+  assert.deepEqual([...forn].sort(), ['Distribuidora SP', 'Ningbo Pet Supplies']);
+
+  const movs = (await req(cookie, 'GET', '/api/admin/estoque/movimentos?sku=RFS-K3')).corpo.movimentos;
+  assert.equal(movs.find((m) => m.loteId === e1.corpo.loteId).fornecedor, 'Ningbo Pet Supplies');
+});

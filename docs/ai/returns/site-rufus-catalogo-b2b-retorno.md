@@ -317,6 +317,20 @@
 - Branch `develop` (não publicada). No deploy: `atualizar.sh` aplica a migration 008 (só cria tabelas e uma coluna,
   não altera dados existentes).
 
+## Atualização 2026-10-23 — fornecedor e documento na compra
+- Preferência registrada: fechar a solução com o usuário antes de implementar.
+- Solução fechada com o usuário: fornecedor como campo próprio, texto livre e opcional, com sugestão dos nomes já
+  usados; nota fiscal/documento opcional; sem campo de origem (o nome do fornecedor basta — há compras importadas da
+  China e de fornecedores nacionais). Frete fica para uma aba futura de cálculo do custo unitário.
+- `migrations/009_estoque_fornecedor.sql`; `estoque.service.js` (grava, lista, `listarFornecedores`, movimentos com
+  fornecedor/documento da compra); `GET /api/admin/estoque/fornecedores`. Web: campos Fornecedor (datalist) e
+  Nota fiscal/documento na entrada; colunas na lista de Compras; referência dos Movimentos.
+- Validação: API `npm test` 36/36 (novo: campos opcionais, espaços normalizados, sugestão, movimento); web 7/7;
+  build ok; migration 009 aplicada sobre base com 3 compras (ficaram com campos vazios). E2E: 3 entradas (China com DI,
+  nacional com NF, uma sem fornecedor) → sugestões, colunas e referências corretas, formulário limpo após lançar;
+  sem erros de console.
+- Branch `develop` (não publicada).
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

@@ -296,3 +296,10 @@ Rotas admin: `GET /api/admin/estoque` (saldos, custo médio, próximo custo PEPS
 `GET /api/admin/estoque/lotes?sku=`, `GET /api/admin/estoque/movimentos?sku=`, `POST /api/admin/estoque/entradas`,
 `DELETE /api/admin/estoque/entradas/:id`, `POST /api/admin/estoque/baixas`.
 
+## Migration 009 — fornecedor e documento na compra (2026-10-23)
+
+`estoque_lotes.fornecedor` (texto livre, até 120) e `estoque_lotes.documento` (NF, DI etc., até 60), ambos opcionais
+(`''` quando vazios, inclusive nas entradas anteriores). Origem importado/nacional não é registrada — o fornecedor
+identifica. `GET /api/admin/estoque/fornecedores` devolve os nomes já usados para sugestão. Frete/custo de importação
+ficará numa aba própria (futura) que calcula o custo unitário lançado na entrada.
+
