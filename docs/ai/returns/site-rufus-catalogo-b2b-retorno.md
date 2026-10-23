@@ -286,6 +286,12 @@
   usuário de leitura `rufus_leitura`; conferido que o PostgreSQL escuta só em 127.0.0.1/::1 (não exposto).
 - Contexto da sessão perto do limite: criado `docs/ai/context/SESSION_CHECKPOINT.md` para continuar em novo chat.
 
+## Atualização 2026-10-23 — e-mail profissional em produção
+- Usuário criou `vendas@rufuspet.com.br` e configurou no `.env` do VPS (remetente) e no admin → Loja (contato exibido e
+  Reply-To da confirmação ao cliente). Aviso interno segue para os e-mails particulares dele e da esposa.
+- Confirmado pelo usuário: envio funcionando e sem cair em spam. Pendência de SMTP do VPS encerrada.
+- Nenhuma mudança de código. Próximo passo pedido: aba de controle de estoque no /admin.
+
 ## Git
 Commit e push na branch `feat/vitrine-unitaria-sem-estoque`; `main` intocada.
 

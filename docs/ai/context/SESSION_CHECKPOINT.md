@@ -25,9 +25,12 @@ opcionais Nome/Razão social e CPF/CNPJ · pedido mínimo (admin) · código pú
 cliente · links WhatsApp (wa.me) · admin: produtos, pedidos (busca, situação dos e-mails, **Reenviar e-mails**),
 Loja (dados do rodapé, e-mails internos, pedido mínimo).
 
+## E-mail em produção (confirmado pelo usuário em 2026-10-23)
+- Remetente e contato da Loja = `vendas@rufuspet.com.br` (`.env` do VPS + admin → Loja); confirmação ao cliente com
+  Reply-To vendas@. Aviso interno vai para os e-mails particulares do usuário e da esposa (admin → E-mails internos).
+- SMTP configurado e entregando sem cair em spam.
+
 ## Pendências conhecidas
-- Confirmar no VPS que `SMTP_USER`/`SMTP_PASS`/`EMAIL_REMETENTE` estão preenchidos em `/opt/rufuspet/api/.env`
-  e reenviar pelo admin os e-mails dos pedidos que falharam (ex.: RF-2310-WHV e o pedido de cliente sem e-mail).
 - Envio automático de WhatsApp (API oficial Meta) não implementado — notificações `whatsapp` ficam `pendente`.
 - Retry automático de e-mail não implementado (só reenvio manual pelo admin).
 - Nomes/descrições dos produtos vêm do seed antigo e nunca foram confirmados pelo cliente.
