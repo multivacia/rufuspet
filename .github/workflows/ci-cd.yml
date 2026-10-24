@@ -1,0 +1,100 @@
+# CI em todo PR e push para develop/main. Com os testes verdes, um push publica no VPS:
+#   develop → homologação (dev.rufuspet.com.br)
+#   main    → produção   (rufuspet.com.br)
+# Configuração do VPS e dos Secrets: docs/deploy-vps.md, seção "Deploy automático".
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: teste
+          POSTGRES_PASSWORD: teste
+          POSTGRES_DB: rufus_teste
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U teste"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+
+      - name: API — dependências
+        working-directory: api
+        run: npm ci --no-audit --no-fund
+
+      - name: API — testes
+        working-directory: api
+        env:
+          DATABASE_URL_TESTE: postgres://teste:teste@127.0.0.1:5432/rufus_teste
+        run: npm test
+
+      - name: Site — dependências
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
+      - name: Site — testes
+        working-directory: web
+        run: npm test
+
+      - name: Site — build
+        working-directory: web
+        run: npm run build
+
+  deploy:
+    needs: testes
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'main' && 'producao' || 'homologacao' }}
+      url: ${{ github.ref_name == 'main' && 'https://rufuspet.com.br' || 'https://dev.rufuspet.com.br' }}
+    # um deploy por ambiente de cada vez; o seguinte espera (não cancela o que está rodando)
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - name: Publicar no VPS
+        env:
+          ALVO: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORTA: ${{ secrets.VPS_PORTA }}
+          VPS_USUARIO: ${{ secrets.VPS_USUARIO }}
+          VPS_SSH_CHAVE: ${{ secrets.VPS_SSH_CHAVE }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VPS_HOST" ]; then
+            echo "::warning::Secrets do VPS não cadastrados; nada foi publicado (ver docs/deploy-vps.md)."
+            exit 0
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_CHAVE" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # A chave só consegue executar /usr/local/bin/rufus-deploy; "$ALVO" escolhe o ambiente.
+          ssh -i ~/.ssh/deploy -p "${VPS_PORTA:-22}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${VPS_USUARIO:-rufus}@$VPS_HOST" "$ALVO"

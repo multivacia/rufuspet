@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Único comando que a chave de deploy do GitHub Actions pode executar no VPS.
+# Instalado em /usr/local/bin/rufus-deploy (dono root) por deploy/preparar-usuario.sh e
+# amarrado à chave em ~rufus/.ssh/authorized_keys com command="..." e restrict.
+#
+# Aceita só "dev" (homologação, branch develop) ou "prod" (produção, branch main).
+# Também pode ser rodado à mão pelo usuário rufus:  rufus-deploy dev
+set -euo pipefail
+export PATH="/usr/local/bin:/usr/bin:/bin"
+HOME="${HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"
+export HOME
+
+ALVO="${SSH_ORIGINAL_COMMAND:-${1:-}}"
+case "$ALVO" in
+  dev)  export APP_DIR=/opt/rufuspet-dev BRANCH=develop PM2_NOME=rufus-api-dev ;;
+  prod) export APP_DIR=/opt/rufuspet    BRANCH=main    PM2_NOME=rufus-api ;;
+  *)    echo "uso: rufus-deploy dev|prod" >&2; exit 2 ;;
+esac
+
+# Um deploy por ambiente de cada vez; espera até 10 min se já houver um rodando.
+exec flock -w 600 "$HOME/.rufus-deploy-$ALVO.lock" bash "$APP_DIR/deploy/atualizar.sh"
