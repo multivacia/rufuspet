@@ -42,6 +42,12 @@ Loja (dados do rodapé, e-mails internos, pedido mínimo).
 - Admin edita pedido sem travas; estoque limita ao disponível (saldo + baixa do próprio pedido); solicitações não reservam.
 - Pedidos confirmados antes da 010 ficam sem cliente: usuário vincula manualmente após o deploy.
 
+## Próximas evoluções (especificadas, aguardando aprovação — 2026-10-23)
+- Especificação: https://claude.ai/artifact/BAoCMaxK2ssTzEsa6FC7oA · protótipo navegável: https://claude.ai/artifact/4y1RWCn7FMfqWDxoaCWeq2
+- Limpeza (TXT, fila WhatsApp/Twilio, retry, PWA, canal preferido) + 7 itens: condições comerciais, link de recompra,
+  clientes sem comprar, NF no pedido, painel de faturamento (com teto MEI informado no admin), conteúdo dos produtos,
+  faixas de preço (condicional). Fases A–D; decisões em aberto listadas no fim da especificação.
+
 ## E-mail em produção (confirmado pelo usuário em 2026-10-23)
 - Remetente e contato da Loja = `vendas@rufuspet.com.br` (`.env` do VPS + admin → Loja); confirmação ao cliente com
   Reply-To vendas@. Aviso interno vai para os e-mails particulares do usuário e da esposa (admin → E-mails internos).
