@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { buscarLoja } from '../services/loja.service.js';
+import { fotosPorChave } from '../services/fotos.service.js';
 
 export const catalogoRouter = Router();
 
@@ -13,6 +14,7 @@ catalogoRouter.get('/produtos', async (req, res, next) => {
        ORDER BY ordem_exibicao, sku
     `);
 
+    const fotos = await fotosPorChave();
     const grupos = new Map();
 
     for (const row of rows) {
@@ -26,6 +28,7 @@ catalogoRouter.get('/produtos', async (req, res, next) => {
           descricao: row.descricao,
           precoUnitario,
           unidade: row.unidade,
+          fotos: fotos.get(chave) ?? [],
           ...(row.grupo_exibicao ? { variantes: [] } : { sku: row.sku, imagem: row.imagem, variantes: null }),
         });
       } else if (grupos.get(chave).precoUnitario !== precoUnitario) {

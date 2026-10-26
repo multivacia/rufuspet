@@ -5,6 +5,7 @@ import { pool } from './db.js';
 import { catalogoRouter } from './routes/catalogo.js';
 import { pedidosRouter } from './routes/pedidos.js';
 import { adminRouter } from './routes/admin.js';
+import { pastaUploads, URL_UPLOADS } from './services/fotos.service.js';
 import { notFoundHandler, errorHandler } from './middleware/errors.js';
 
 export const app = express();
@@ -22,6 +23,9 @@ app.get('/health', async (req, res) => {
     res.status(503).json({ ok: true, db: false });
   }
 });
+
+// Fotos enviadas pelo admin. Nome aleatório por arquivo, então pode ficar em cache para sempre.
+app.use(URL_UPLOADS, express.static(pastaUploads(), { index: false, dotfiles: 'deny', immutable: true, maxAge: '365d' }));
 
 app.use('/api', catalogoRouter);
 app.use('/api', pedidosRouter);

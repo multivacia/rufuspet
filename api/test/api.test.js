@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 
 const urlTeste = process.env.DATABASE_URL_TESTE;
 const pastaPedidos = await fs.mkdtemp(path.join(os.tmpdir(), 'rufus-pedidos-'));
+const pastaUploads = await fs.mkdtemp(path.join(os.tmpdir(), 'rufus-uploads-'));
 let servidor;
 let base;
 let pool;
@@ -19,6 +20,7 @@ before(async () => {
   process.env.DATABASE_URL = urlTeste;
   process.env.JWT_SECRET = 'segredo-de-teste';
   process.env.PEDIDOS_PASTA = pastaPedidos;
+  process.env.UPLOADS_PASTA = pastaUploads;
   process.env.EMAILS_INTERNOS = 'loja@exemplo.com';
   process.env.PEDIDOS_LIMITE_POR_HORA = '1000';
   process.env.ADMIN_LOGIN_LIMITE = '1000';
@@ -36,6 +38,7 @@ after(async () => {
   servidor?.close();
   await pool?.end();
   await fs.rm(pastaPedidos, { recursive: true, force: true });
+  await fs.rm(pastaUploads, { recursive: true, force: true });
 });
 
 beforeEach(async () => {
@@ -45,6 +48,8 @@ beforeEach(async () => {
   await pool.query(`DROP SEQUENCE IF EXISTS pedidos_seq_${new Date().getFullYear()}`);
   // A numeração reinicia a cada teste; TXT de um teste anterior com o mesmo número não pode ser reaproveitado.
   for (const arquivo of await fs.readdir(pastaPedidos)) await fs.unlink(path.join(pastaPedidos, arquivo));
+  await pool.query('TRUNCATE produto_fotos RESTART IDENTITY');
+  await pool.query("UPDATE produtos SET imagem = '/produtos/' || lower(sku) || '.webp'");
   await pool.query("UPDATE produtos SET ativo = true, preco_unitario = CASE WHEN sku LIKE 'RFS-POTE%' THEN 16.90 WHEN sku LIKE 'RFS-SUP%' THEN 12.90 WHEN sku = 'RFS-K6' THEN 18.90 ELSE 11.90 END");
 });
 
@@ -375,4 +380,102 @@ test('admin: reenviar e-mails do pedido', opcoes, async () => {
       else process.env[k] = v;
     }
   }
+});
+
+// ---- Fotos do produto -------------------------------------------------------
+
+async function imagemJpeg(largura = 2400, altura = 1800) {
+  const sharp = (await import('sharp')).default;
+  return sharp({ create: { width: largura, height: altura, channels: 3, background: '#c33' } })
+    .jpeg()
+    .withExif({ IFD0: { Make: 'CelularTeste', Model: 'X1' } })
+    .toBuffer();
+}
+
+async function enviarFoto(cookie, caminho, buffer, legenda, metodo = 'POST') {
+  const form = new FormData();
+  form.append('foto', new Blob([buffer], { type: 'image/jpeg' }), 'foto.jpg');
+  if (legenda !== undefined) form.append('legenda', legenda);
+  const r = await fetch(base + caminho, { method: metodo, headers: cookie ? { cookie } : {}, body: form });
+  return { status: r.status, corpo: await r.json() };
+}
+
+test('fotos extras: upload converte para webp sem metadados e o catálogo mostra em todas as cores', opcoes, async () => {
+  const sharp = (await import('sharp')).default;
+  const cookie = await loginAdmin();
+  const jpeg = await imagemJpeg();
+
+  assert.equal((await enviarFoto(null, '/api/admin/produtos/pote-dobravel/fotos', jpeg)).status, 401);
+  assert.equal((await enviarFoto(cookie, '/api/admin/produtos/nao-existe/fotos', jpeg)).status, 404);
+  assert.equal((await enviarFoto(cookie, '/api/admin/produtos/pote-dobravel/fotos', Buffer.from('nao e imagem'))).status, 400);
+  assert.equal((await enviarFoto(cookie, '/api/admin/produtos/pote-dobravel/fotos', jpeg, 'x'.repeat(61))).status, 400);
+
+  const r = await enviarFoto(cookie, '/api/admin/produtos/pote-dobravel/fotos', jpeg, ' Pote aberto ');
+  assert.equal(r.status, 201);
+  assert.equal(r.corpo.legenda, 'Pote aberto');
+
+  const servida = await fetch(base + r.corpo.url);
+  assert.equal(servida.status, 200);
+  const meta = await sharp(Buffer.from(await servida.arrayBuffer())).metadata();
+  assert.equal(meta.format, 'webp');
+  assert.equal(Math.max(meta.width, meta.height), 1600);
+  assert.equal(meta.exif, undefined);
+
+  const produtos = await (await fetch(`${base}/api/produtos`)).json();
+  const pote = produtos.find((p) => p.grupo === 'pote-dobravel');
+  assert.deepEqual(pote.fotos, [{ url: r.corpo.url, legenda: 'Pote aberto' }]);
+  assert.deepEqual(produtos.find((p) => p.sku === 'RFS-K3').fotos, []);
+});
+
+test('fotos extras: limite de 8, reordenar, legenda e excluir apaga o arquivo', opcoes, async () => {
+  const cookie = await loginAdmin();
+  const jpeg = await imagemJpeg(400, 400);
+  const ids = [];
+  for (let i = 0; i < 8; i++) {
+    const r = await enviarFoto(cookie, '/api/admin/produtos/RFS-K3/fotos', jpeg, `foto ${i}`);
+    assert.equal(r.status, 201);
+    ids.push(r.corpo.id);
+  }
+  assert.equal((await enviarFoto(cookie, '/api/admin/produtos/RFS-K3/fotos', jpeg)).status, 409);
+
+  const json = (metodo, caminho, corpo) =>
+    fetch(base + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(corpo) });
+
+  const invertida = [...ids].reverse();
+  assert.equal((await json('PUT', '/api/admin/produtos/RFS-K3/fotos/ordem', { ids: invertida.slice(1) })).status, 400);
+  const ordem = await (await json('PUT', '/api/admin/produtos/RFS-K3/fotos/ordem', { ids: invertida })).json();
+  assert.deepEqual(ordem.map((f) => f.id), invertida);
+
+  const legenda = await (await json('PATCH', `/api/admin/fotos/${ids[0]}`, { legenda: 'Saquinho aberto' })).json();
+  assert.equal(legenda.legenda, 'Saquinho aberto');
+
+  const arquivo = path.join(pastaUploads, path.basename(ordem[0].url));
+  await fs.access(arquivo);
+  assert.equal((await json('DELETE', `/api/admin/fotos/${ordem[0].id}`)).status, 200);
+  await assert.rejects(fs.access(arquivo));
+  assert.equal((await fetch(base + ordem[0].url)).status, 404);
+
+  const k3 = (await (await fetch(`${base}/api/produtos`)).json()).find((p) => p.sku === 'RFS-K3');
+  assert.equal(k3.fotos.length, 7);
+  assert.equal(k3.fotos.at(-1).legenda, 'Saquinho aberto');
+});
+
+test('foto principal: troca só a cor escolhida e não apaga a anterior nem altera pedidos', opcoes, async () => {
+  const cookie = await loginAdmin();
+  await post('/api/pedidos', pedidoValido({ itens: [{ sku: 'RFS-SUP-ROSA', quantidade: 1 }] }));
+
+  const primeira = await enviarFoto(cookie, '/api/admin/produtos/RFS-SUP-ROSA/imagem', await imagemJpeg(), undefined, 'PUT');
+  assert.equal(primeira.status, 200);
+  assert.match(primeira.corpo.imagem, /^\/api\/uploads\/.+\.webp$/);
+  const segunda = await enviarFoto(cookie, '/api/admin/produtos/RFS-SUP-ROSA/imagem', await imagemJpeg(), undefined, 'PUT');
+  assert.notEqual(segunda.corpo.imagem, primeira.corpo.imagem);
+  assert.equal((await fetch(base + primeira.corpo.imagem)).status, 200);
+
+  const sup = (await (await fetch(`${base}/api/produtos`)).json()).find((p) => p.grupo === 'suporte-osso');
+  assert.equal(sup.variantes.find((v) => v.sku === 'RFS-SUP-ROSA').imagem, segunda.corpo.imagem);
+  assert.equal(sup.variantes.find((v) => v.sku === 'RFS-SUP-AZUL').imagem, '/produtos/rfs-sup-azul.webp');
+
+  const { rows } = await pool.query('SELECT imagem_snapshot FROM pedido_itens');
+  assert.equal(rows[0].imagem_snapshot, '/produtos/rfs-sup-rosa.webp');
+  assert.equal((await enviarFoto(cookie, '/api/admin/produtos/NAO-EXISTE/imagem', await imagemJpeg(), undefined, 'PUT')).status, 404);
 });
