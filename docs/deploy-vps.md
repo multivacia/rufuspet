@@ -10,6 +10,7 @@ O Rufus usa recursos próprios e não altera os demais:
 | Banco / usuário PostgreSQL | `rufus` / `rufus` (senha gerada no servidor, só em `api/.env`) |
 | Site nginx | `/etc/nginx/sites-available/rufuspet` (`rufuspet.com.br` e `www`) |
 | Pedidos em TXT | `/var/lib/rufuspet/pedidos` |
+| Fotos enviadas pelo admin | `/opt/rufuspet/api/uploads` (servidas pela API em `/api/uploads/`) |
 | Backups | `~/backups/rufuspet` |
 
 ## Antes: DNS
@@ -47,7 +48,7 @@ Depois:
 bash /opt/rufuspet/deploy/atualizar.sh
 ```
 
-Faz backup do banco (`~/backups/rufuspet`), atualiza o código (só fast-forward), instala dependências,
+Faz backup do banco e das fotos (`~/backups/rufuspet`), atualiza o código (só fast-forward), instala dependências,
 aplica migrations, gera o site e reinicia `rufus-api`.
 
 ## E-mails que não chegaram
@@ -61,5 +62,6 @@ um aviso no topo e o reenvio informa o motivo, em vez de tentar enviar sem login
 
 - Logs: `pm2 logs rufus-api --lines 100`
 - Pedidos recebidos: `ls -lt /var/lib/rufuspet/pedidos | head`
+- Restaurar fotos: `mkdir -p /opt/rufuspet/api/uploads && tar -xzf ARQUIVO-fotos.tar.gz -C /opt/rufuspet/api/uploads`
 - Restaurar backup: `gunzip -c ARQUIVO.sql.gz | psql "$(grep ^DATABASE_URL= /opt/rufuspet/api/.env | cut -d= -f2-)"`
   (em banco vazio; peça ajuda antes de restaurar em produção).

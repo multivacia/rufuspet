@@ -79,3 +79,22 @@ a{color:inherit}
 .email-status.pendente{color:#9A6B00}
 .email-ok{color:var(--lime-deep);font-size:13px}
 .email-erro{color:var(--erro);font-size:13px}
+
+/* Fotos do produto (admin) */
+.foto-principal{display:flex;align-items:center;gap:10px}
+.foto-principal img{width:56px;height:56px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:3px}
+.link-acao{background:none;border:1px solid var(--line);border-radius:3px;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);white-space:nowrap}
+.link-acao:hover{background:var(--line-soft)}
+.fotos-extras{background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:14px;margin:6px 0}
+.fotos-extras[aria-busy="true"]{opacity:.7}
+.fotos-extras-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.fotos-extras-topo .emails-titulo{margin:0}
+.cta-primario.desabilitado{opacity:.5;cursor:not-allowed}
+.fotos-extras-lista{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.fotos-extras-lista li{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line-soft);border-radius:3px;padding:8px;flex-wrap:wrap}
+.fotos-extras-lista img{width:96px;height:96px;object-fit:contain;background:#fff;border:1px solid var(--line-soft);border-radius:3px;flex:none}
+.tabela-admin .fotos-extras-lista input[type="text"]{flex:1 1 200px;width:auto;font-family:'Inter Tight',sans-serif;font-size:14px;height:38px}
+.fotos-extras-acoes{display:flex;gap:6px;align-items:center}
+.fotos-extras-acoes .expandir:disabled{opacity:.35;cursor:default}
+.botao-excluir{background:#fff;border:1px solid rgba(192,57,43,.35);color:var(--erro);border-radius:3px;padding:5px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+.botao-excluir:hover:not(:disabled){background:var(--erro-bg)}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Atualiza o Rufus para a versão mais recente do main: backup do banco, código, migrations, build e restart.
+# Atualiza o Rufus para a versão mais recente do main: backup do banco e das fotos, código, migrations, build e restart.
 #   bash /opt/rufuspet/deploy/atualizar.sh
 set -euo pipefail
 umask 022  # arquivos do site precisam ser legíveis pelo nginx (www-data)
@@ -18,6 +18,17 @@ DATABASE_URL="$(grep -E '^DATABASE_URL=' api/.env | cut -d= -f2-)"
 ARQUIVO="$BACKUP_DIR/rufus-$(date +%Y%m%d-%H%M%S).sql.gz"
 (umask 077; pg_dump "$DATABASE_URL" | gzip > "$ARQUIVO") # só o backup fica restrito ao dono
 echo "backup: $ARQUIVO"
+
+passo "Backup das fotos enviadas pelo admin"
+UPLOADS_PASTA="$(grep -E '^UPLOADS_PASTA=' api/.env | cut -d= -f2- || true)"
+UPLOADS_PASTA="${UPLOADS_PASTA:-$APP_DIR/api/uploads}"
+if [ -d "$UPLOADS_PASTA" ]; then
+  FOTOS="$BACKUP_DIR/rufus-fotos-$(date +%Y%m%d-%H%M%S).tar.gz"
+  (umask 077; tar -czf "$FOTOS" -C "$UPLOADS_PASTA" .)
+  echo "backup: $FOTOS"
+else
+  echo "nenhuma foto enviada ainda"
+fi
 
 passo "Código"
 git fetch origin main

@@ -6,6 +6,17 @@ import { adminLoginRateLimit } from '../middleware/ratelimit.js';
 import { ErroLoja, atualizarLoja, buscarLoja } from '../services/loja.service.js';
 import { normalizarCodigo } from '../services/regras-pedido.js';
 import { ErroEmail, reenviarEmails, situacaoEmail } from '../services/notificacao.service.js';
+import multer from 'multer';
+import {
+  ErroFoto,
+  MAX_BYTES_UPLOAD,
+  adicionarFoto,
+  alterarLegenda,
+  excluirFoto,
+  listarFotos,
+  reordenarFotos,
+  trocarFotoPrincipal,
+} from '../services/fotos.service.js';
 
 export const adminRouter = Router();
 
@@ -58,7 +69,12 @@ adminRouter.post('/admin/logout', autenticarAdmin, (req, res) => {
 
 adminRouter.get('/admin/produtos', autenticarAdmin, async (req, res, next) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM produtos ORDER BY ordem_exibicao, sku');
+    const { rows } = await pool.query(`
+      SELECT p.*, coalesce(p.grupo_exibicao, p.sku) AS chave_fotos,
+             (SELECT count(*)::int FROM produto_fotos f WHERE f.chave = coalesce(p.grupo_exibicao, p.sku)) AS fotos_extras
+        FROM produtos p
+       ORDER BY p.ordem_exibicao, p.sku
+    `);
     res.json(rows);
   } catch (err) {
     next(err);
@@ -227,3 +243,78 @@ adminRouter.post('/admin/pedidos/:id/reenviar-emails', autenticarAdmin, async (r
     next(err);
   }
 });
+
+// ---- Fotos do produto -------------------------------------------------------
+// :chave = grupo_exibicao (produto com cores) ou sku (produto sem variantes).
+
+const receberFoto = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_BYTES_UPLOAD, files: 1 } }).single('foto');
+
+function comFoto(handler) {
+  return (req, res, next) => {
+    receberFoto(req, res, async (err) => {
+      if (err instanceof multer.MulterError) {
+        const grande = err.code === 'LIMIT_FILE_SIZE';
+        return res.status(grande ? 413 : 400).json({
+          erro: { codigo: grande ? 'ARQUIVO_GRANDE' : 'DADOS_INVALIDOS', mensagem: grande ? 'Foto acima de 10 MB' : 'Envio inválido' },
+        });
+      }
+      if (err) return next(err);
+      if (!req.file) {
+        return res.status(400).json({ erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Envie a foto no campo "foto"' } });
+      }
+      try {
+        await handler(req, res);
+      } catch (erro) {
+        responderErroFoto(erro, res, next);
+      }
+    });
+  };
+}
+
+function responderErroFoto(err, res, next) {
+  if (err instanceof ErroFoto) {
+    return res.status(err.status).json({ erro: { codigo: err.codigo, mensagem: err.message } });
+  }
+  next(err);
+}
+
+function rotaFoto(handler) {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      responderErroFoto(err, res, next);
+    }
+  };
+}
+
+function idFoto(req) {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) throw new ErroFoto('Foto inválida');
+  return id;
+}
+
+adminRouter.get('/admin/produtos/:chave/fotos', autenticarAdmin, rotaFoto(async (req, res) => {
+  res.json(await listarFotos(req.params.chave));
+}));
+
+adminRouter.post('/admin/produtos/:chave/fotos', autenticarAdmin, comFoto(async (req, res) => {
+  res.status(201).json(await adicionarFoto(req.params.chave, req.file.buffer, req.body?.legenda));
+}));
+
+adminRouter.put('/admin/produtos/:chave/fotos/ordem', autenticarAdmin, rotaFoto(async (req, res) => {
+  res.json(await reordenarFotos(req.params.chave, req.body?.ids));
+}));
+
+adminRouter.patch('/admin/fotos/:id', autenticarAdmin, rotaFoto(async (req, res) => {
+  res.json(await alterarLegenda(idFoto(req), req.body?.legenda));
+}));
+
+adminRouter.delete('/admin/fotos/:id', autenticarAdmin, rotaFoto(async (req, res) => {
+  await excluirFoto(idFoto(req));
+  res.json({ ok: true });
+}));
+
+adminRouter.put('/admin/produtos/:sku/imagem', autenticarAdmin, comFoto(async (req, res) => {
+  res.json(await trocarFotoPrincipal(req.params.sku, req.file.buffer));
+}));
